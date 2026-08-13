@@ -1,0 +1,2343 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#22352A">
+<title>Annales scolaires — AYH</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  :root{
+    --paper:#EAE3D2;
+    --paper-dark:#DCD3BC;
+    --ink:#1C2B23;
+    --board:#22352A;
+    --board-dark:#16241C;
+    --red:#A8332A;
+    --red-dim:#c96a5f;
+    --gold:#C8932A;
+    --line:#c9bfa4;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:Georgia, 'Times New Roman', serif;
+    min-height:100vh;
+    padding-bottom:40px;
+  }
+  /* subtle paper texture via layered gradients */
+  body{
+    background-image:
+      radial-gradient(circle at 15% 8%, rgba(0,0,0,0.025) 0, transparent 40%),
+      radial-gradient(circle at 85% 92%, rgba(0,0,0,0.025) 0, transparent 40%);
+  }
+
+  header.top{
+    background:var(--board);
+    color:var(--paper);
+    padding:18px 16px 22px;
+    position:relative;
+    overflow:hidden;
+    border-bottom:4px solid var(--gold);
+  }
+  header.top .eyebrow{
+    font-family:'Courier New', monospace;
+    letter-spacing:3px;
+    font-size:11px;
+    opacity:0.75;
+    text-transform:uppercase;
+  }
+  header.top h1{
+    margin:6px 0 2px;
+    font-family:'Courier New', monospace;
+    font-size:24px;
+    letter-spacing:1px;
+    font-weight:700;
+  }
+  header.top p.sub{
+    margin:0;
+    font-size:13px;
+    opacity:0.85;
+    font-style:italic;
+  }
+  .stamp{
+    position:absolute;
+    right:-14px; top:-14px;
+    width:92px; height:92px;
+    border:3px solid var(--gold);
+    border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    transform:rotate(14deg);
+    opacity:0.85;
+  }
+  .stamp span{
+    font-family:'Courier New', monospace;
+    font-size:9px;
+    letter-spacing:1px;
+    text-align:center;
+    color:var(--gold);
+    line-height:1.3;
+  }
+
+  .offline-badge{
+    position:fixed; top:8px; right:10px;
+    font-size:10px; color:var(--paper);
+    background:rgba(0,0,0,0.35);
+    padding:3px 7px; border-radius:10px;
+    display:none; z-index:50;
+    font-family:'Courier New', monospace;
+  }
+  .offline-badge.show{display:block;}
+
+  main{max-width:640px; margin:0 auto; padding:16px;}
+
+  /* onglets de cycle (Secondaire 1 / Secondaire 2) — niveau supérieur, fixe */
+  .class-tabs{
+    display:flex;
+    gap:0;
+    border-bottom:2px solid var(--ink);
+    margin-bottom:6px;
+    position:sticky;
+    top:0;
+    background:var(--paper);
+    z-index:10;
+    padding-top:2px;
+  }
+  .class-tab{
+    flex:1;
+    text-align:center;
+    font-family:'Courier New', monospace;
+    font-weight:700;
+    font-size:14px;
+    padding:10px 4px;
+    cursor:pointer;
+    color:var(--ink);
+    opacity:0.55;
+    border-bottom:3px solid transparent;
+    letter-spacing:0.5px;
+  }
+  .class-tab.active{
+    opacity:1;
+    color:var(--board);
+    border-bottom:3px solid var(--red);
+  }
+  .class-tab.disabled{ opacity:0.3; cursor:default; }
+
+  /* onglets de classe (6e/5e/4e/3e ou Seconde/Première/Terminale) —
+     niveau secondaire, non fixe, style plus discret */
+  .classe-tabs-sub{
+    position:static;
+    border-bottom:1px solid var(--line);
+    margin-top:2px;
+  }
+  .classe-tabs-sub .class-tab{
+    font-size:12.5px;
+    padding:8px 4px;
+    opacity:0.6;
+  }
+  .classe-tabs-sub .class-tab.active{
+    opacity:1;
+    border-bottom-width:2px;
+  }
+
+  /* puces de série (A4 / D / C) — même style que les puces matière */
+  .serie-chip{ font-weight:700; }
+
+  /* bande déroulante des matières */
+  .matiere-band{
+    display:flex;
+    gap:8px;
+    overflow-x:auto;
+    padding:4px 2px 12px;
+    margin-bottom:4px;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+  }
+  .matiere-band::-webkit-scrollbar{display:none;}
+  .matiere-chip{
+    flex:0 0 auto;
+    white-space:nowrap;
+    font-family:'Courier New', monospace;
+    font-size:12.5px;
+    padding:9px 13px;
+    border:2px solid var(--ink);
+    border-radius:16px;
+    background:var(--paper-dark);
+    cursor:pointer;
+    letter-spacing:0.3px;
+  }
+  .matiere-chip.active{background:var(--board);color:var(--paper);border-color:var(--board);}
+  .matiere-chip.disabled{opacity:0.35; cursor:default;}
+
+  /* matiere tags (conservé pour compat) */
+  .tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;}
+  .tag{
+    font-family:'Courier New', monospace;
+    font-size:13px;
+    padding:10px 14px;
+    border:2px solid var(--ink);
+    border-radius:3px;
+    background:var(--paper-dark);
+    cursor:pointer;
+    letter-spacing:0.5px;
+  }
+  .tag.active{background:var(--board);color:var(--paper);border-color:var(--board);}
+  .tag.disabled{opacity:0.4; cursor:default;}
+  .tag .count{opacity:0.6; font-size:11px;}
+
+  section.block{margin-top:22px;}
+  h2.section-title{
+    font-family:'Courier New', monospace;
+    font-size:13px;
+    letter-spacing:2px;
+    text-transform:uppercase;
+    color:var(--ink);
+    opacity:0.55;
+    margin:0 4px 10px;
+    border-bottom:1px solid var(--line);
+    padding-bottom:6px;
+  }
+
+  /* sujet cards */
+  .sujet-card{
+    background:var(--paper-dark);
+    border:1px solid var(--line);
+    border-left:5px solid var(--board);
+    border-radius:2px;
+    padding:14px 16px;
+    margin-bottom:12px;
+    cursor:pointer;
+    position:relative;
+  }
+  .sujet-card:active{transform:scale(0.99);}
+  .sujet-card .titre{
+    font-family:'Courier New', monospace;
+    font-weight:700;
+    font-size:15px;
+    letter-spacing:0.5px;
+  }
+  .sujet-card .meta{
+    font-size:12.5px;
+    color:var(--ink);
+    opacity:0.65;
+    margin-top:4px;
+    font-style:italic;
+  }
+  .sujet-card .badge-corrige{
+    position:absolute;top:12px;right:12px;
+    font-family:'Courier New', monospace;
+    font-size:10px;
+    color:var(--red);
+    border:1px solid var(--red);
+    padding:2px 6px;
+    border-radius:10px;
+    transform:rotate(-6deg);
+  }
+
+  /* sujet detail */
+  .sujet-header{
+    background:var(--paper);
+    border:1px solid var(--ink);
+    padding:14px 16px;
+    margin-bottom:16px;
+  }
+  .sujet-header table{width:100%;border-collapse:collapse;font-family:'Courier New',monospace;font-size:12px;}
+  .sujet-header td{padding:3px 0;}
+  .sujet-header .examtitle{font-weight:700;font-size:16px;margin-bottom:8px;font-family:'Courier New',monospace;}
+
+  .exercice{
+    background:#fff8ec;
+    border:1px solid var(--line);
+    padding:16px;
+    margin-bottom:18px;
+    border-radius:2px;
+  }
+  .exercice h3{
+    margin:0 0 10px;
+    font-family:'Courier New', monospace;
+    font-size:14px;
+    text-decoration:underline;
+  }
+  .exercice .enonce{white-space:pre-wrap;font-size:15px;line-height:1.55;}
+  .exercice table.doc-table{
+    width:100%;border-collapse:collapse;margin:12px 0;font-size:13px;
+  }
+  .exercice table.doc-table td, .exercice table.doc-table th{
+    border:1px solid var(--ink);padding:6px 8px;text-align:left;vertical-align:top;
+  }
+  .exercice table.doc-table th{background:var(--paper-dark);}
+
+  .consigne{margin-top:16px;}
+  .consigne .q{font-weight:700;font-size:15px;line-height:1.5;}
+  .reveal-btn{
+    margin-top:8px;
+    background:none;
+    border:1.5px dashed var(--red);
+    color:var(--red);
+    font-family:'Courier New', monospace;
+    font-size:12.5px;
+    padding:7px 12px;
+    border-radius:3px;
+    cursor:pointer;
+    letter-spacing:0.5px;
+  }
+  .reveal-btn:active{background:rgba(168,51,42,0.08);}
+  .corrige{
+    display:none;
+    margin-top:10px;
+    padding:12px 14px 12px 16px;
+    border-left:3px dashed var(--red);
+    color:var(--red);
+    font-style:italic;
+    font-size:14.5px;
+    line-height:1.6;
+    transform:rotate(-0.4deg);
+    background:rgba(168,51,42,0.04);
+  }
+  .corrige.show{display:block;}
+  .corrige .tick{color:var(--red); font-style:normal; font-weight:700;}
+
+  .back-fab{
+    display:inline-block;
+    margin-bottom:10px;
+    font-family:'Courier New', monospace;
+    font-size:13px;
+    color:var(--board);
+    border:1.5px solid var(--board);
+    padding:6px 12px;
+    border-radius:3px;
+    cursor:pointer;
+    background:none;
+  }
+
+  .export-toolbar{
+    display:flex;
+    gap:8px;
+    margin-bottom:14px;
+    flex-wrap:wrap;
+  }
+  .export-btn{
+    font-family:'Courier New', monospace;
+    font-size:12.5px;
+    color:var(--paper);
+    background:var(--board);
+    border:1.5px solid var(--board);
+    padding:8px 12px;
+    border-radius:3px;
+    cursor:pointer;
+    letter-spacing:0.3px;
+  }
+  .export-btn:active{ background:var(--board-dark); }
+
+  footer.credit{
+    text-align:center;
+    font-family:'Courier New', monospace;
+    font-size:10.5px;
+    opacity:0.45;
+    margin-top:36px;
+  }
+
+  .empty-note{
+    font-style:italic;
+    opacity:0.65;
+    font-size:13.5px;
+    padding:10px 4px;
+  }
+</style>
+</head>
+<body>
+
+<div class="offline-badge" id="offlineBadge">📡 Hors ligne</div>
+
+<header class="top">
+  <div class="stamp"><span>AYH<br>ANNALES</span></div>
+  <div class="eyebrow">Togo · Hors ligne</div>
+  <h1>Annales scolaires</h1>
+  <p class="sub">Secondaire 1 &amp; 2 — sujets passés, corrigés en détail</p>
+</header>
+
+<main id="app"></main>
+
+<footer class="credit">AYH — © Honyore</footer>
+
+<script>
+/* ---------------------------------------------------------
+   DONNÉES — chaque sujet : matière / examen / année / exercices
+--------------------------------------------------------- */
+const SUJETS = [
+{
+  id:"svt-bepc-2026-normale",
+  cycle:"secondaire1", classe:"3e", serie:null, matiere:"SVT", examen:"BEPC", annee:2026, session:"Session normale",
+  duree:"2H",
+  exercices:[
+    {
+      titre:"Exercice 1",
+      points:"8 pts",
+      enonce:`Adjoa est une femme enceinte depuis deux mois. Elle vit avec sa belle-mère Mariam, son mari Kokou et sa nièce Solim âgée de 19 ans. Depuis quelques jours, elle a des nausées, des vomissements, des maux de tête, des troubles respiratoires (essoufflements, gêne respiratoire) et la fièvre ; elle se sent faible et manque d'énergie.
+
+Ces symptômes ont été banalisés car étant considérés comme des manifestations de la grossesse. Mais suite à une aggravation de son état de santé une nuit, elle fut transportée d'urgence au Centre Hospitalier Régional (CHR). Le médecin après consultation demande les analyses suivantes : la goutte épaisse (G.E) et la Numération Formule Sanguine (NFS).
+
+Les résultats de ces analyses sont consignés dans le document 1.`,
+      documents:[
+        {
+          titre:"Document 1 : Analyses et Résultats",
+          html:`<table class="doc-table"><tr><th>Analyses</th><th>Résultats</th></tr>
+          <tr><td>Goutte Épaisse</td><td>Présence de nombreux plasmodiums (+++)</td></tr>
+          <tr><td>NFS</td><td>Nombre très faible de globules rouges par rapport à la normale et très faible concentration d'hémoglobine par rapport à la normale.</td></tr></table>`
+        },
+        {
+          titre:"Document 2 : Tests sanguins et résultats",
+          intro:`Au regard des résultats, le médecin prescrit des médicaments à la femme enceinte et décide de lui faire une transfusion sanguine. Malheureusement, il y a une pénurie de sang à la banque de sang du CHR. Les membres de sa famille se portent volontaires pour lui donner du sang. Des prélèvements de sang sont faits sur Adjoa et les membres de sa famille pour déterminer lequel des membres pourrait donner du sang.`,
+          html:`<table class="doc-table"><tr><th>Gouttes de sang</th><th>Anti-A</th><th>Anti-B</th><th>Anti-A et Anti-B</th><th>Anti-Rh</th></tr>
+          <tr><td>Adjoa</td><td>Pas d'agglutination</td><td>Pas d'agglutination</td><td>Pas d'agglutination</td><td>Agglutination</td></tr>
+          <tr><td>Solim</td><td>Agglutination</td><td>Pas d'agglutination</td><td>Agglutination</td><td>Agglutination</td></tr>
+          <tr><td>Kokou</td><td>Agglutination</td><td>Agglutination</td><td>Agglutination</td><td>Pas d'agglutination</td></tr>
+          <tr><td>Mariam</td><td>Pas d'agglutination</td><td>Pas d'agglutination</td><td>Pas d'agglutination</td><td>Pas d'agglutination</td></tr></table>`
+        }
+      ],
+      consignes:[
+        {
+          q:"Consigne 1 : Établis le lien entre le résultat de la goutte épaisse et l'anémie, l'insuffisance respiratoire et le manque d'énergie observés chez Adjoa.",
+          r:`La goutte épaisse révèle de nombreux plasmodiums : Adjoa est atteinte de paludisme. Le plasmodium se multiplie dans les globules rouges et les détruit (hémolyse), ce qui explique le nombre très faible de globules rouges et la faible concentration d'hémoglobine (anémie) constatés à la NFS. Or l'hémoglobine transporte l'oxygène : sa diminution réduit l'apport d'oxygène aux organes, d'où le manque d'énergie ; et l'organisme accélère la respiration pour compenser ce déficit, d'où les troubles respiratoires.`
+        },
+        {
+          q:"Consigne 2 : Après avoir expliqué l'importance des tests réalisés au niveau du document 2, détermine par un raisonnement logique la personne qui pourra donner du sang à Adjoa.",
+          r:`Ces tests permettent de déterminer le groupe sanguin (ABO) et le facteur Rhésus de chaque personne, afin d'éviter une agglutination dangereuse lors de la transfusion.
+D'après le document 2 : Adjoa est du groupe O, Rh+ ; Solim est du groupe A, Rh+ ; Kokou est du groupe AB, Rh− ; Mariam est du groupe O, Rh−.
+Adjoa (O) possède des anticorps anti-A et anti-B : elle ne peut recevoir que des globules rouges du groupe O. Solim (A) et Kokou (AB) sont donc incompatibles.
+Mariam (O−) est compatible : le groupe O est donneur universel, et un donneur Rh− convient à un receveur Rh+.
+C'est donc Mariam qui peut donner son sang à Adjoa.`
+        }
+      ]
+    },
+    {
+      titre:"Exercice 2",
+      points:"6 pts",
+      enonce:`I. Trouve l'intrus parmi les termes suivants puis justifie ton choix :
+1. Drépanocytose - tuberculose - albinisme - hémophilie
+2. Bacille tétanique - plasmodium - levure de bière - gonocoque
+3. Sachets plastiques - poussières - bouteilles - gaz d'échappement
+4. Progestérone - amylase salivaire - testostérone - œstrogènes
+
+II. Associe chaque élément de la colonne A à son correspondant de la colonne B :
+Colonne A : 1. Espèce humaine — 2. Couleur de la peau — 3. Réabsorption tubulaire — 4. Scissiparité — 5. Vaccin — 6. Allaitement maternel — 7. Manganèse — 8. Modification de l'ADN
+Colonne B : a. Prévention du cancer du sein — b. Bassin des Voltas — c. 23 paires de chromosomes — d. Une étape de la production de l'urine — e. Caractère transmis des ascendants aux descendants — f. Apparition des maladies héréditaires — g. Reproduction asexuée — h. Stimule la production d'anticorps par l'organisme
+
+III. Sans recopier le texte, trouve les mots ou expressions correspondants aux chiffres :
+« Le Togo est parcouru par quatre principales formations ...1... La plus jeune de ces formations est le ...2... contenant des minerais comme le ...3... qui est utilisé en industrie pour la fabrication du ciment. La plus vieille formation est le ...4... contenant le ...5... qui est une roche magmatique caractéristique de cette formation. Le ...6... est une formation sédimentaire qui présente deux supergroupes séparés par une couche de tillites : le supergroupe infratillitique et le supergroupe ...7... Entre les deux formations sédimentaires se trouve ...8... qui est une formation géologique caractérisée par une chaîne de montagnes qui traverse le pays en bandoulière. »`,
+      consignes:[
+        {
+          q:"Corrigé — I. Intrus",
+          r:`1. Tuberculose — c'est une maladie infectieuse (microbienne), alors que les trois autres (drépanocytose, albinisme, hémophilie) sont des maladies héréditaires.
+2. Levure de bière — c'est un microbe non pathogène (utile), alors que les trois autres sont pathogènes.
+3. Gaz d'échappement — c'est un polluant gazeux, alors que les trois autres sont des déchets solides.
+4. Amylase salivaire — c'est une enzyme digestive, alors que les trois autres sont des hormones sexuelles.`
+        },
+        {
+          q:"Corrigé — II. Association",
+          r:`1-c · 2-e · 3-d · 4-g · 5-h · 6-a · 7-b · 8-f`
+        },
+        {
+          q:"Corrigé — III. Texte à trous (géologie du Togo)",
+          r:`1. géologiques — 2. bassin sédimentaire côtier — 3. calcaire — 4. Dahoméyen — 5. granite — 6. Voltaïen — 7. supratillitique — 8. la chaîne de l'Atacora (l'Atacorien).`
+        }
+      ]
+    },
+    {
+      titre:"Exercice 3",
+      points:"6 pts",
+      enonce:`1. Fais le schéma annoté de la coupe transversale dans la moelle épinière en place dans le canal rachidien. (2,5 pts)
+
+2. Kodjo et Afiwa sont deux camarades de classe ; Kodjo voit mal les objets éloignés tandis qu'Afiwa voit mal les objets rapprochés.
+2.1 De quelle anomalie de l'œil souffre chacun d'eux ?
+2.2 Propose une correction pour chaque anomalie.
+
+3.1 Qu'appelle-t-on contraception ?
+3.2 Cite trois méthodes contraceptives.
+3.3 Énumère quatre intérêts de la contraception.
+
+4. Qu'appelle-t-on sérovaccination ? Quel est l'intérêt de cette méthode ?`,
+      consignes:[
+        {
+          q:"Corrigé — 1 (schéma)",
+          r:`Schéma à réaliser : coupe transversale de la moelle épinière dans le canal rachidien, en indiquant vertèbre, méninges, substance grise (en forme de papillon, au centre) et substance blanche (en périphérie), racines nerveuses dorsale et ventrale.`
+        },
+        {
+          q:"Corrigé — 2",
+          r:`2.1 Kodjo (voit mal de loin) : myopie. Afiwa (voit mal de près) : hypermétropie.
+2.2 Myopie → verres divergents (biconcaves). Hypermétropie → verres convergents (biconvexes).`
+        },
+        {
+          q:"Corrigé — 3",
+          r:`3.1 Contraception : ensemble des méthodes réversibles permettant d'éviter une grossesse non désirée, en empêchant la fécondation ou la nidation.
+3.2 Trois méthodes : la pilule contraceptive, le préservatif, le stérilet (DIU).
+3.3 Quatre intérêts : espacer les naissances, prévenir les grossesses précoces/non désirées, protéger la santé de la mère, permettre la poursuite de la scolarité des jeunes filles.`
+        },
+        {
+          q:"Corrigé — 4",
+          r:`Sérovaccination : association d'une sérothérapie (injection de sérum contenant des anticorps déjà formés, protection immédiate) et d'une vaccination (injection d'antigènes atténués, protection durable), pratiquées simultanément.
+Intérêt : elle assure une double protection, immédiate et durable — utile par exemple après une blessure à risque de tétanos.`
+        }
+      ]
+    }
+  ]
+},
+{
+  id:"svt-bepc-blanc-tsevie-2026",
+  cycle:"secondaire1", classe:"3e", serie:null, matiere:"SVT", examen:"BEPC Blanc", annee:2026, session:"Février — DRE Maritime, IESG-Tsévié",
+  duree:"2H", coef:"2",
+  exercices:[
+    {
+      titre:"Exercice 1 — Situation d'évaluation",
+      points:"8 pts",
+      enonce:`Au cours d'une émission sur l'Homme et sa santé, un médecin donne la liste des microbes que voici : bacille de Koch, nitrobacter, gonocoque, vibrion de choléra, levure de bière, VIH, penicillium notatum, plasmodium. Il affirme qu'il y a dans cette liste des microbes pathogènes et non pathogènes ; il ajoute que la liste en question comporte un microbe parasite responsable d'une maladie endémique qui menace les régions intertropicales.`,
+      consignes:[
+        {
+          q:"Consigne 1 : Identifie les microbes pathogènes et non pathogènes de la liste tout en donnant le rôle de chacun de ces microbes.",
+          r:`Pathogènes : bacille de Koch (tuberculose) ; gonocoque (blennorragie) ; vibrion cholérique (choléra) ; VIH (SIDA) ; plasmodium (paludisme).
+Non pathogènes : nitrobacter (nitrification du sol, utile à l'agriculture) ; levure de bière (fermentation : pain, bière) ; penicillium notatum (production de pénicilline, antibiotique).`
+        },
+        {
+          q:"Consigne 2 : Nomme la maladie parasitaire dont parle le texte, ses manifestations puis les mesures de prévention contre cette maladie.",
+          r:`Maladie : le paludisme, causé par le plasmodium et transmis par la piqûre d'un anophèle femelle infecté.
+Manifestations : fièvre, frissons, maux de tête, courbatures, parfois vomissements et anémie.
+Prévention : dormir sous moustiquaire imprégnée, assainir l'environnement (éliminer les eaux stagnantes), utiliser des répulsifs, consulter rapidement dès les premiers symptômes.`
+        }
+      ]
+    },
+    {
+      titre:"Exercice 2 — Questions objectives",
+      points:"6 pts",
+      enonce:`I. Complète le texte en utilisant uniquement les chiffres accompagnés des réponses justes :
+« Au cours de la digestion des aliments, l'amidon cuit est transformé dans la bouche en …1… par l'…2… Dans l'estomac, les protides sont transformés en …3… par les enzymes du suc …4… À la fin de la digestion gastrique, on obtient une bouillie acidulée appelée le …5… qui passe dans l'…6… Les produits finis de la digestion, encore appelés les …7…, passent dans le sang : c'est l'…8… »
+
+II. QCM : 1. Le calcaire est exploité à : A. Notsè B. Lomé C. Tabligbo D. Hahotoe
+2. La morphine et l'opium sont : A. Des drogues illicites B. Des drogues silices C. Des médicaments D. Des drogues licites
+3. L'apprentissage de l'écriture, de la natation sont une finalité des réflexes : A. Innés B. Conditionnels C. Automatiques
+4. On corrige la myopie avec des verres : A. Convergents B. Biconcaves C. Spéciaux D. Divergents
+5. Le vaccin amène l'organisme à produire : A. Des leucocytes B. Des anticorps C. Des hématies D. Des plaquettes sanguines
+6. Le groupe sanguin A+ peut recevoir le sang du groupe sanguin : A. AB+ B. B+ C. O+
+
+III. Constitue des groupes avec les mots suivants et attribue un nom à chaque groupe :
+Pie-mère ; choroïde ; sensibilité ; veines ; rétine ; sclérotique ; dure-mère ; protection ; production de vitamine D ; artères ; arachnoïde ; capillaires sanguins ; régulation thermique.
+
+IV. Vrai ou Faux :
+1. Pratiquer l'antisepsie consiste à stériliser les matériels chirurgicaux afin d'empêcher la contamination.
+2. La peau est un organe de défense artificielle contre les microbes.`,
+      consignes:[
+        {
+          q:"Corrigé — I. Texte à trous",
+          r:`1. maltose — 2. amylase salivaire (ptyaline) — 3. peptides — 4. gastrique (pepsine) — 5. chyme — 6. intestin grêle — 7. nutriments — 8. absorption.`
+        },
+        {
+          q:"Corrigé — II. QCM",
+          r:`1-C (Tabligbo) · 2-A (drogues illicites) · 3-B (conditionnels) · 4-D (divergents) · 5-B (anticorps) · 6-C (O+).`
+        },
+        {
+          q:"Corrigé — III. Classement",
+          r:`Méninges : pie-mère, arachnoïde, dure-mère.
+Tuniques de l'œil : sclérotique, choroïde, rétine.
+Peau (structures et fonctions) : sensibilité, protection, production de vitamine D, régulation thermique, veines, artères, capillaires sanguins.`
+        },
+        {
+          q:"Corrigé — IV. Vrai/Faux",
+          r:`1. Faux — c'est l'asepsie (stérilisation du matériel), et non l'antisepsie (destruction des microbes sur une plaie).
+2. Faux — la peau est une barrière naturelle, pas artificielle.`
+        }
+      ]
+    },
+    {
+      titre:"Exercice 3 — Questions traditionnelles",
+      points:"6 pts",
+      enonce:`1. Qu'appelle-t-on immunité ? Dépigmentation ?
+2. Donne la composition du chyle.
+3. Énumère les phases d'une révolution cardiaque en précisant les caractéristiques de chaque phase.
+4. Réalise le schéma annoté de la double circulation.`,
+      consignes:[
+        {
+          q:"Corrigé",
+          r:`1. Immunité : capacité de l'organisme à résister aux agents pathogènes. Dépigmentation : pratique consistant à éclaircir la peau en réduisant la mélanine, souvent par des produits chimiques — pratique risquée pour la santé cutanée.
+2. Chyle : lymphe blanchâtre riche en lipides absorbés au niveau de l'intestin grêle, contenant aussi de l'eau, des sels minéraux et des globules blancs.
+3. Révolution cardiaque : systole auriculaire (contraction des oreillettes) → systole ventriculaire (contraction des ventricules, éjection du sang) → diastole générale (relâchement, remplissage du cœur).
+4. Schéma : petite circulation (cœur droit → poumons → cœur gauche) et grande circulation (cœur gauche → organes → cœur droit) — à réaliser sous forme de schéma annoté.`
+        }
+      ]
+    }
+  ]
+},
+{
+  id:"svt-bepc-juillet-2021",
+  cycle:"secondaire1", classe:"3e", serie:null, matiere:"SVT", examen:"BEPC", annee:2021, session:"Juillet",
+  duree:"2H", coef:"2",
+  exercices:[
+    {
+      titre:"Questions 1 à 9",
+      points:"20 pts",
+      enonce:`1. En biologie, les notions d'appareil et de système sont très proches. Relève la différence qui existe entre les deux notions.
+2. a. Les os sont des organes vivants. Vrai ou faux ? b. Par un exemple tiré de la vie quotidienne, explique ta réponse.
+3. Complète : « Sous l'action des rayons …a… du soleil, la peau synthétise de la vitamine …b… Le manque de cette vitamine chez un enfant crée une maladie appelée …c… L'exposition raisonnable des enfants au soleil augmentée de l'apport alimentaire en sels de calcium et de …d… peut résoudre ce problème de malnutrition. »
+4. Reproduis et complète le tableau : Aliments simples / Lieux de digestion / Produits finis.
+5. Fais un schéma propre et annoté d'une villosité intestinale.
+6. Explique comment les globules blancs arrivent à lutter contre les microbes dans l'organisme.
+7. Fais un schéma propre et annoté de la coupe longitudinale du cœur humain.
+8. L'analyse de l'urine et du plasma d'une personne donne les résultats du tableau ci-dessous.`,
+      documents:[
+        {
+          titre:"Tableau — Analyse urine/plasma (pour 1 litre)",
+          html:`<table class="doc-table"><tr><th>Constituants</th><th>1 litre de plasma</th><th>1 litre d'urine</th></tr>
+          <tr><td>Protides</td><td>69 g</td><td>0 g</td></tr>
+          <tr><td>Lipides</td><td>5 g</td><td>0 g</td></tr>
+          <tr><td>Glucides</td><td>1 g</td><td>1 g</td></tr>
+          <tr><td>Ammoniaque</td><td>0 g</td><td>0,5 g</td></tr></table>
+          <p style="font-size:13px;margin-top:8px;">a. Donne deux fonctions du rein. b. Cette personne est-elle malade ou en bonne santé ? c. Quel peut être l'organe défaillant si la personne est malade ? d. De quelle maladie peut-il s'agir ? e. Donne deux conseils pratiques à cette personne.</p>
+          <p style="font-size:13px;margin-top:10px;">9. a. Par quelle fonction biologique l'espèce humaine assure-t-elle sa pérennité ? b. Cite deux rôles que jouent les glandes génitales mâles. c. Qu'est-ce que la nidation et à quel niveau de l'organe génital de la femme se déroule-t-elle ? d. Donne deux inconvénients d'une grossesse précoce chez une élève.</p>`
+        }
+      ],
+      consignes:[
+        {
+          q:"Corrigé — 1 à 3",
+          r:`1. Un appareil regroupe des organes de nature différente concourant à une même fonction (ex : appareil digestif). Un système regroupe des organes de même nature répartis dans le corps (ex : système nerveux).
+2. a. Vrai. b. Un os fracturé se ressoude avec le temps : seul un tissu vivant, formé de cellules vivantes, peut se réparer ainsi.
+3. a. ultraviolets — b. D — c. rachitisme — d. vitamine D.`
+        },
+        {
+          q:"Corrigé — 4 (tableau digestion)",
+          r:`Glucides : bouche et intestin grêle → glucose. Protides : estomac et intestin grêle → acides aminés. Lipides : intestin grêle → acides gras + glycérol.`
+        },
+        {
+          q:"Corrigé — 5 et 7 (schémas)",
+          r:`Schémas à réaliser : villosité intestinale (paroi fine, réseau de capillaires sanguins et vaisseau chylifère central, pour l'absorption des nutriments) ; coupe longitudinale du cœur (oreillettes, ventricules, valves, aorte, artère et veines pulmonaires).`
+        },
+        {
+          q:"Corrigé — 6",
+          r:`Les globules blancs luttent par deux mécanismes : la phagocytose (certains leucocytes engloutissent et digèrent les microbes) et la production d'anticorps par les lymphocytes, qui neutralisent spécifiquement les antigènes.`
+        },
+        {
+          q:"Corrigé — 8",
+          r:`a. Le rein épure le sang (élimine les déchets comme l'ammoniaque) et réabsorbe les substances utiles (eau, glucose…).
+b. Malade : le glucose ne devrait normalement pas apparaître dans l'urine (1 g constaté).
+c. Organe défaillant : le pancréas.
+d. Maladie : le diabète.
+e. Conseils : suivi médical/glycémique, alimentation pauvre en sucres rapides, activité physique régulière.`
+        },
+        {
+          q:"Corrigé — 9",
+          r:`a. La reproduction. b. Testicules : production des spermatozoïdes et production de testostérone. c. Nidation : implantation de l'embryon dans la muqueuse utérine, au niveau de l'utérus. d. Grossesse précoce : risques de complications à l'accouchement (bassin immature) et déscolarisation.`
+        }
+      ]
+    }
+  ]
+},
+{
+  id:"svt-bepc-septembre-2020",
+  cycle:"secondaire1", classe:"3e", serie:null, matiere:"SVT", examen:"BEPC", annee:2020, session:"Septembre",
+  duree:"2H", coef:"2",
+  exercices:[
+    {
+      titre:"Partie A",
+      points:"8 pts",
+      enonce:`1. Reproduis le schéma annoté de l'appareil digestif de l'Homme. (4 pts)
+2. Reproduis et annote le schéma de l'articulation mobile de la hanche ou du coude de l'Homme. (4 pts)`,
+      consignes:[
+        { q:"Corrigé", r:`Schémas à réaliser : appareil digestif complet (bouche, œsophage, estomac, intestin grêle, gros intestin, glandes annexes) ; articulation mobile (os, cartilage articulaire, ligaments, capsule articulaire, liquide synovial).` }
+      ]
+    },
+    {
+      titre:"Partie B",
+      points:"12 pts",
+      enonce:`3. a) Localise les différents tissus de la peau dans les différentes couches. (1,5 pt)
+b) On nourrit trois lots de rats avec des rations alimentaires différentes. Les rats des lots N1 et N2 grandissent normalement, ceux du lot N3 ne grandissent pas. L'analyse de la ration du lot N3 montre l'absence d'une vitamine donnée. De quelle vitamine s'agit-il ? Sur quelles structures de l'os cette vitamine agit-elle pour favoriser la croissance du rat ? (1 pt)
+
+4. Cite trois différents rôles des reins et trois différents rôles de la peau. (3 pts)
+
+5. La combinaison entre l'hémoglobine et les gaz respiratoires.
+a) Quel nom donne-t-on à la forme combinée de l'hémoglobine et du dioxygène ? à la forme combinée de l'hémoglobine et du dioxyde de carbone ? (1 pt)
+b) Cite le lieu où a lieu chacune de ces combinaisons. (1 pt)
+c) À quels niveaux de l'organisme se dissocient-elles ? (1 pt)
+
+6. Un patient présente : amaigrissement, diarrhée chronique, fièvre persistante. L'analyse au laboratoire révèle une sérologie positive au VIH.
+a) De quelle maladie souffre le patient ? (0,5 pt)
+b) Quel est le nom de l'agent pathogène de cette maladie ? (0,5 pt)
+c) Cite deux mesures pratiques qu'on peut prendre pour éviter cette maladie. (1 pt)
+
+7. Cite et précise les caractéristiques des différents types d'hémorragie externe. (1,5 pt)`,
+      consignes:[
+        { q:"Corrigé — 3", r:`a. Épiderme : tissu épithélial (kératinocytes, mélanocytes). Derme : tissu conjonctif (vaisseaux sanguins, terminaisons nerveuses, follicules pileux, glandes). Hypoderme : tissu adipeux.
+b. Vitamine D. Elle agit sur les structures osseuses en favorisant la fixation du calcium et la minéralisation, au niveau du cartilage de croissance des os longs.` },
+        { q:"Corrigé — 4", r:`Reins : épuration du sang (élimination des déchets comme l'urée), régulation de la composition du sang (eau, sels minéraux), maintien de l'équilibre du milieu intérieur.
+Peau : protection contre les agressions/microbes, régulation thermique, organe de sensibilité (tactile).` },
+        { q:"Corrigé — 5", r:`a. Hémoglobine + O2 = oxyhémoglobine. Hémoglobine + CO2 = carbaminohémoglobine.
+b. L'oxyhémoglobine se forme au niveau des poumons ; la carbaminohémoglobine se forme au niveau des tissus/organes.
+c. Elles se dissocient en sens inverse : l'oxyhémoglobine se dissocie au niveau des tissus (libère l'O2) ; la carbaminohémoglobine se dissocie au niveau des poumons (libère le CO2).` },
+        { q:"Corrigé — 6", r:`a. Le SIDA. b. Le VIH (virus de l'immunodéficience humaine). c. Utiliser un préservatif lors des rapports sexuels ; éviter le partage d'objets tranchants/seringues.` },
+        { q:"Corrigé — 7", r:`Hémorragie artérielle : sang rouge vif, giclant par saccades (au rythme des battements cardiaques).
+Hémorragie veineuse : sang rouge sombre, s'écoulant en nappe continue.
+Hémorragie capillaire : saignement léger et diffus, le sang suinte.` }
+      ]
+    }
+  ]
+},
+{
+  id:"svt-bepc-juin-2019",
+  cycle:"secondaire1", classe:"3e", serie:null, matiere:"SVT", examen:"BEPC", annee:2019, session:"Juin",
+  duree:"2H", coef:"2",
+  exercices:[
+    {
+      titre:"Partie A",
+      points:"8 pts",
+      enonce:`1. Reproduis et annote le schéma de l'arc réflexe simple ; indique le sens de l'influx nerveux. (4 pts)
+2. Reproduis et annote le schéma d'une articulation mobile de ton choix. (4 pts)`,
+      consignes:[
+        { q:"Corrigé", r:`Schémas à réaliser : arc réflexe simple (récepteur, nerf sensitif, centre nerveux/moelle, nerf moteur, effecteur — flèche indiquant le sens de l'influx du récepteur vers l'effecteur) ; articulation mobile au choix.` }
+      ]
+    },
+    {
+      titre:"Partie B",
+      points:"12 pts",
+      enonce:`3. a) Donne la différence de structure entre un os long de veau et un os long de bœuf, en précisant son rôle. (1 pt)
+b) Voici des mots relatifs à la digestion : bol alimentaire, chyme stomacal, déglutition. Dis à quel niveau de l'appareil digestif se passe chaque phénomène. (1,5 pt)
+
+4. Réponds par vrai ou faux : a) Les nerfs ne conduisent pas l'influx nerveux. b) Les nerfs ne sont pas excitables. c) Les nerfs ne sont pas élastiques. d) Les nerfs ne sont pas conductibles. (2 pts)
+
+5. Voici une liste de microbes : plasmodium falciparum, levure de bière, amibe dysentérique, penicillium notatum.
+a) Cite les microbes pathogènes de la liste en précisant les maladies que chacun provoque. (1,5 pt)
+b) Donne le rôle joué par les microbes non pathogènes de la liste. (1 pt)
+
+6. Les centres nerveux sont protégés par des enveloppes.
+a) Par quel nom désigne-t-on ces enveloppes ? (0,5 pt)
+b) Quelle est la maladie causée par l'inflammation de ces enveloppes ? (0,5 pt)
+c) Donne les noms des centres nerveux que ces enveloppes protègent. (0,5 pt)
+
+7. Pour une certaine distance de l'œil, on voit flou pendant un moment relativement court, puis la vision devient nette.
+a) Comment appelle-t-on ce mécanisme de l'œil ? (0,5 pt)
+b) Quel élément de l'œil est responsable de ce mécanisme ? (0,5 pt)
+
+8. Au cours du processus de la transmission de la vie, deux cellules fusionnent pour former un œuf.
+a) Où se fait la fécondation au niveau de l'appareil reproducteur de la femme ? (0,5 pt)
+b) Nomme chacune des cellules reproductrices. (1 pt)
+c) Précise les glandes génitales qui les produisent. (1 pt)`,
+      consignes:[
+        { q:"Corrigé — 3", r:`a. L'os de veau (jeune) présente un cartilage de conjugaison entre épiphyse et diaphyse, car il est en croissance ; l'os de bœuf (adulte) n'en a plus, la croissance est achevée. Rôle : le cartilage de conjugaison permet la croissance en longueur de l'os.
+b. Bol alimentaire : formé dans la bouche. Déglutition : au niveau du pharynx/œsophage. Chyme stomacal : formé dans l'estomac.` },
+        { q:"Corrigé — 4", r:`Toutes les propositions sont fausses : les nerfs conduisent l'influx nerveux, sont excitables, élastiques et conductibles.` },
+        { q:"Corrigé — 5", r:`a. Plasmodium falciparum → paludisme. Amibe dysentérique → amibiase (dysenterie amibienne).
+b. Levure de bière : fermentation (pain, bière). Penicillium notatum : production de pénicilline (antibiotique).` },
+        { q:"Corrigé — 6", r:`a. Les méninges. b. La méningite. c. L'encéphale (cerveau) et la moelle épinière.` },
+        { q:"Corrigé — 7", r:`a. L'accommodation. b. Le cristallin (qui change de courbure).` },
+        { q:"Corrigé — 8", r:`a. Dans les trompes utérines (trompes de Fallope). b. Le spermatozoïde et l'ovule. c. Testicules (spermatozoïdes) et ovaires (ovules).` }
+      ]
+    }
+  ]
+},
+{
+  id:"svt-bepc-2014",
+  cycle:"secondaire1", classe:"3e", serie:null, matiere:"SVT", examen:"BEPC", annee:2014, session:"Session normale",
+  duree:"2H", coef:"2",
+  exercices:[
+    {
+      titre:"Partie A",
+      points:"8 pts",
+      enonce:`1. Fais le schéma annoté de l'appareil respiratoire de l'Homme montrant la structure d'un des poumons.
+2. Fais le schéma annoté d'un arc réflexe simple.`,
+      consignes:[
+        { q:"Corrigé", r:`Schémas à réaliser : appareil respiratoire (fosses nasales, trachée, bronches, poumons, structure alvéolaire) ; arc réflexe simple (récepteur, voies afférente/efférente, centre nerveux, effecteur).` }
+      ]
+    },
+    {
+      titre:"Partie B",
+      points:"12 pts",
+      enonce:`3. Deux tubes A et B contiennent du sang frais de bœuf. Dans le tube A, on ajoute de l'oxalate d'ammonium puis on agite. Les deux tubes sont laissés à l'air libre pendant un temps suffisamment long.
+a) Donne le nom du phénomène qui s'est déroulé dans chaque tube.
+b) Quel est le rôle joué par l'oxalate d'ammonium dans le tube A ?
+c) Pour l'organisme, quelle est l'importance du phénomène observé dans le tube B ?
+
+4. L'analyse de l'urine de Paul révèle la présence du glucose et de l'albumine.
+a) Paul est-il bien portant ?
+b) Si non, de quelle maladie souffre-t-il ?
+
+5. Voici une liste de microbes : levure de bière, plasmodium, amibe dysentérique, penicillium notatum, gonocoque.
+a) Qu'est-ce qu'un microbe pathogène ?
+b) Quels sont, parmi les microbes de la liste, ceux qui sont pathogènes ?
+c) De quelles maladies les microbes pathogènes de cette liste sont-ils responsables ?
+d) Donne le rôle joué dans la vie de l'Homme par chacun des autres microbes non pathogènes.
+
+6. Cite deux mesures que tu peux adopter vis-à-vis d'une personne vivant avec le VIH.
+
+7. a) Cite les propriétés des muscles. b) Cite les propriétés des nerfs. c) Quelle est la propriété commune aux muscles et aux nerfs ?
+
+8. La consommation des drogues et de l'alcool est devenue un fléau à combattre. Cite deux mesures que tu peux prendre pour lutter contre ce fléau.`,
+      consignes:[
+        { q:"Corrigé — 3", r:`a. Tube A (oxalate d'ammonium) : pas de coagulation, le sang reste liquide. Tube B (sans anticoagulant) : coagulation (formation d'un caillot).
+b. L'oxalate d'ammonium est un anticoagulant : il piège les ions calcium nécessaires à la coagulation.
+c. La coagulation permet d'arrêter les hémorragies (hémostase) en formant un caillot qui bouche la plaie, protégeant l'organisme contre la perte de sang et les infections.` },
+        { q:"Corrigé — 4", r:`a. Non, il est malade. b. Le glucose évoque un diabète (sucré) ; l'albumine évoque une atteinte rénale (albuminurie).` },
+        { q:"Corrigé — 5", r:`a. Un microbe pathogène est un microbe capable de provoquer une maladie chez son hôte.
+b. Pathogènes : plasmodium, amibe dysentérique, gonocoque.
+c. Plasmodium → paludisme. Amibe dysentérique → amibiase. Gonocoque → blennorragie.
+d. Levure de bière : fermentation (pain, bière). Penicillium notatum : production de pénicilline.` },
+        { q:"Corrigé — 6", r:`Éviter toute discrimination/stigmatisation ; encourager la personne à suivre son traitement antirétroviral et l'accompagner moralement.` },
+        { q:"Corrigé — 7", r:`a. Muscles : excitabilité, contractilité, élasticité. b. Nerfs : excitabilité, conductibilité, élasticité. c. Propriété commune : l'excitabilité (et l'élasticité).` },
+        { q:"Corrigé — 8", r:`Sensibiliser/éduquer sur les dangers des drogues et de l'alcool (campagnes en milieu scolaire) ; renforcer le contrôle de la vente aux mineurs et accompagner les personnes dépendantes.` }
+      ]
+    }
+  ]
+},
+{
+  id:"svt-bepc-2016",
+  cycle:"secondaire1", classe:"3e", serie:null, matiere:"SVT", examen:"BEPC", annee:2016, session:"Session normale",
+  duree:"2H", coef:"2",
+  exercices:[
+    {
+      titre:"Partie A",
+      points:"8 pts",
+      enonce:`1. Fais les schémas annotés comparés de la coupe longitudinale du fémur d'un veau et de celui d'un bœuf.
+2. Fais le schéma annoté de l'appareil urinaire de l'Homme.`,
+      consignes:[
+        { q:"Corrigé", r:`Schémas à réaliser : coupe du fémur (veau : cartilage de conjugaison visible ; bœuf : os ossifié, cartilage disparu) ; appareil urinaire (reins, uretères, vessie, urètre).` }
+      ]
+    },
+    {
+      titre:"Partie B",
+      points:"12 pts",
+      enonce:`1. Cite les grandes fonctions biologiques de l'Homme.
+2. a) Définis les propriétés des muscles rouges et des nerfs. b) Laquelle est commune aux deux organes ?
+3. Votre professeur de SVT réalise avec vous des expériences avec les aliments suivants : amidon, glucose, sel de chlorure, sel de calcium.
+a) Quel réactif utilise-t-il pour mettre en évidence chaque aliment ?
+b) Précise les réactions observées avec chaque réactif.
+c) L'amidon cuit est transformé dans la bouche. Nomme l'enzyme qui intervient et le produit obtenu.
+4. a) Cite les principales étapes de la technique d'élaboration d'un frottis sanguin. b) Les hématies, les leucocytes et les plaquettes sanguines sont les éléments figurés observés. Donne le rôle de chacun d'eux dans l'organisme humain.
+5. Un camarade se plaint de vives douleurs lors de chaque miction avec écoulement de pus urétral et une rougeur au niveau de l'orifice urinaire.
+a) De quelle maladie souffre-t-il ? b) Quel est l'agent causal ? c) Cite quatre précautions qu'il aurait dû prendre pour éviter cette maladie.
+6. Dans la transmission de la vie, deux cellules fusionnent pour former un œuf. a) Nomme chacune de ces cellules. b) Précise les glandes génitales qui les produisent.`,
+      consignes:[
+        { q:"Corrigé — 1 et 2", r:`1. Nutrition, relation (sensibilité et locomotion), reproduction.
+2. a. Muscles rouges : excitabilité, contractilité, élasticité, tonicité. Nerfs : excitabilité, conductibilité, élasticité. b. Propriété commune : l'excitabilité (et l'élasticité).` },
+        { q:"Corrigé — 3", r:`a. Amidon → eau iodée (lugol). Glucose → liqueur de Fehling à chaud. Sel de chlorure → nitrate d'argent. Sel de calcium → oxalate d'ammonium.
+b. Eau iodée + amidon → coloration bleu-noir. Liqueur de Fehling + glucose (à chaud) → précipité rouge brique. Nitrate d'argent + chlorure → précipité blanc. Oxalate d'ammonium + calcium → précipité blanc.
+c. Enzyme : amylase salivaire (ptyaline). Produit obtenu : le maltose.` },
+        { q:"Corrigé — 4", r:`a. Prélever une goutte de sang, l'étaler en fine couche sur une lame, sécher, fixer, colorer (May-Grünwald-Giemsa), observer au microscope.
+b. Hématies : transport de l'oxygène (et du CO2). Leucocytes : défense de l'organisme. Plaquettes : coagulation du sang.` },
+        { q:"Corrigé — 5", r:`a. La blennorragie (gonorrhée). b. Le gonocoque.
+c. Utiliser un préservatif ; éviter les partenaires multiples/rapports non protégés ; se faire dépister régulièrement ; consulter rapidement en cas de symptômes.` },
+        { q:"Corrigé — 6", r:`a. Le spermatozoïde et l'ovule. b. Testicules (spermatozoïdes) et ovaires (ovules).` }
+      ]
+    }
+  ]
+},
+{
+  id:"pct-bepc-2026-normale",
+  cycle:"secondaire1", classe:"3e", serie:null, matiere:"Physique-Chimie", examen:"BEPC", annee:2026, session:"Session normale",
+  duree:"2H",
+  exercices:[
+    {
+      titre:"Exercice 1",
+      points:"8 pts",
+      enonce:`Situation A
+Un élève en classe de troisième rend visite à son père, technicien en électronique, dans son atelier un samedi. Ce dernier répare une télévision dont la panne est liée à la défaillance d'un conducteur ohmique de résistance R = 24 Ω. Ne disposant pas d'un conducteur ohmique de cette valeur, il décide de le remplacer en associant deux conducteurs ohmiques de résistances R1 et R2.
+R1 porte les couleurs jaune – rouge – noir et R2 les couleurs vert – bleu – noir.
+L'élève souhaite déterminer le type d'association permettant d'obtenir une résistance équivalente égale à 24 Ω.
+Étant camarade de cet élève, détermine la valeur de R1 et R2, puis le type d'association adaptée, schéma à l'appui.
+
+Table des couleurs : Noir=0, Marron=1, Rouge=2, Orange=3, Jaune=4, Vert=5, Bleu=6, Violet=7, Gris=8, Blanc=9.
+
+Situation B
+Ton oncle souhaite éclairer l'enclos de ses volailles à l'aide d'une lampe fonctionnant à l'énergie solaire. Il achète un kit composé de panneaux solaires, de fils conducteurs, d'un accumulateur (batterie) et d'une lampe. Il te fait appel pour l'installation. À la fin, il t'avoue qu'il ne comprend pas comment ces différents éléments permettent d'obtenir de la lumière.
+Explique à ton oncle le fonctionnement de ce dispositif installé.`,
+      consignes:[
+        {
+          q:"Corrigé — Situation A",
+          r:`Lecture du code des couleurs : R1 (jaune-rouge-noir) = 4, 2, ×10⁰ = 42 Ω. R2 (vert-bleu-noir) = 5, 6, ×10⁰ = 56 Ω.
+En série : R1+R2 = 98 Ω (≠ 24 Ω). En parallèle : Réq = (R1×R2)/(R1+R2) = (42×56)/98 = 24 Ω ✓
+Il faut donc associer R1 et R2 en parallèle (en dérivation), les deux résistances branchées entre les deux mêmes points du circuit (schéma : deux branches parallèles entre les bornes A et B).`
+        },
+        {
+          q:"Corrigé — Situation B",
+          r:`Le panneau solaire capte la lumière du soleil et la convertit en énergie électrique (effet photovoltaïque). Cette énergie est transportée par les fils conducteurs jusqu'à l'accumulateur (batterie), qui la stocke sous forme d'énergie chimique. Lorsque la lampe est allumée, la batterie restitue cette énergie sous forme électrique, que la lampe convertit en lumière. Ainsi, le panneau recharge la batterie le jour, et la batterie alimente la lampe même la nuit, en l'absence de soleil.`
+        }
+      ]
+    },
+    {
+      titre:"Exercice 2",
+      points:"6 pts",
+      enonce:`A. Choisis la bonne réponse.
+1. L'élément de l'œil qui joue le rôle de lentille convergente est : a- la rétine b- la pupille c- le cristallin
+2. Un objet de longueur 2,5 m est représenté à l'échelle 1/100 sur un papier. Quelle est la longueur du dessin ? a- 25 cm b- 2,5 cm c- 0,025 cm
+3. Un fer à repasser soumis à une tension de 220 V est parcouru par un courant de 15 A. Quelle est l'énergie électrique consommée pendant 5 h de fonctionnement ? a- 16,5 kWh b- 165 kWh c- 16500 kWh
+4. Quelle est l'équation bilan équilibrée de la réaction entre l'oxyde ferrique et l'aluminium ?
+a- Fe2O3 + 2Fe → 3Al + Al2O3
+b- Fe2O3 + 2Al → 2Fe + Al2O3
+c- 2Fe + Al2O3 → Fe2O3 + 2Al
+
+B. Réorganise les mots pour obtenir une phrase correcte :
+1. vers 7. / solution acide, / dilue une / son pH / et tend / augmente / Lorsqu'on
+2. appelée réaction / d'acide chlorhydrique / L'action / est / sur la soude / acidobasique. / d'une solution
+
+C. Recopie les chiffres de 1 à 8 du texte ci-dessous puis écris à côté de chacun le mot ou expression qu'il remplace :
+« L'électrolyse de l'eau est la décomposition de l'eau en deux gaz. En effet, traversée par un courant __1__ dans un __2__, l'eau est décomposée en dihydrogène et en dioxygène. Le __3__ se dégage à la cathode tandis que le __4__ se dégage à l'anode. Le volume de gaz obtenu à la cathode est le __5__ de celui obtenu à l'anode. Lorsqu'un mélange de deux volumes de __6__ et d'un volume de __7__ est brûlé, il se forme de l'eau : c'est __8__ de l'eau. »`,
+      consignes:[
+        {
+          q:"Corrigé — A. QCM",
+          r:`1-c (le cristallin) · 2-b (2,5 m × 1/100 = 2,5 cm) · 3-a (P = U×I = 220×15 = 3300 W = 3,3 kW ; E = P×t = 3,3×5 = 16,5 kWh) · 4-b (Fe2O3 + 2Al → 2Fe + Al2O3, réaction d'aluminothermie).`
+        },
+        {
+          q:"Corrigé — B. Phrases",
+          r:`1. « Lorsqu'on dilue une solution acide, son pH augmente et tend vers 7. »
+2. « L'action d'une solution d'acide chlorhydrique sur la soude est appelée réaction acidobasique. »`
+        },
+        {
+          q:"Corrigé — C. Électrolyse",
+          r:`1. continu — 2. électrolyseur — 3. dihydrogène — 4. dioxygène — 5. double — 6. dihydrogène — 7. dioxygène — 8. la synthèse.`
+        }
+      ]
+    },
+    {
+      titre:"Exercice 3",
+      points:"6 pts",
+      enonce:`I. On décide de déterminer la formule brute de deux alcanes A et B. Le nombre d'atomes d'hydrogène de l'alcane A est 8 ; l'alcane B est composé de 8 atomes au total.
+1. a. Détermine la formule brute et le nom de chacun des deux alcanes A et B. b. Écris la formule développée de chacun de ces alcanes.
+2. On réalise la combustion complète de B. a. Écris l'équation correspondante. b. On a utilisé un volume de 8,75 m³ d'air pour brûler complètement le composé B. Détermine le volume de ce composé B ainsi que le volume de dioxyde de carbone produit.
+
+II. 1. On verse quelques gouttes de phénolphtaléine dans une fraction de solution inconnue de pH = 12.
+a. Définis le pH. b. Quelle est la couleur prise par la solution ?
+2. On prélève 1 mL de cette solution puis on ajoute 999 mL d'eau distillée.
+a. Comment varie le pH de cette solution après dilution ? b. Détermine le pH de la solution finale obtenue après l'ajout de l'eau distillée.
+
+III. Un objet AB de 10 cm de hauteur est placé perpendiculairement sur l'axe optique, à 30 cm d'une lentille convergente de distance focale f = 20 cm.
+1. Construis l'image A'B' de AB à l'échelle 1/5.
+2. À quelle distance doit-on placer l'écran pour recueillir l'image de cet objet ?
+3. Détermine la taille réelle de l'image A'B'.`,
+      consignes:[
+        {
+          q:"Corrigé — I. Alcanes",
+          r:`Alcane CnH2n+2. A : 2n+2=8 → n=3 → C3H8, le propane. B : n+(2n+2)=8 → n=2 → C2H6, l'éthane.
+Formules développées : propane CH3–CH2–CH3 ; éthane CH3–CH3.
+Combustion de B : 2C2H6 + 7O2 → 4CO2 + 6H2O.
+Air = 8,75 m³, dont O2 = 8,75/5 = 1,75 m³. Rapport C2H6:O2 = 2:7 → V(B) = 1,75×2/7 = 0,5 m³. Rapport C2H6:CO2 = 1:2 → V(CO2) = 2×0,5 = 1 m³.`
+        },
+        {
+          q:"Corrigé — II. pH",
+          r:`a. Le pH mesure l'acidité ou la basicité d'une solution (échelle 0-14 ; <7 acide, =7 neutre, >7 basique).
+b. Solution basique (pH=12) : la phénolphtaléine devient rose.
+2a. Après dilution, le pH diminue et se rapproche de 7 (la solution reste basique).
+2b. Dilution ×1000 : [OH⁻] passe de 10⁻² à 10⁻⁵ mol/L → pOH=5 → pH final = 14−5 = 9.`
+        },
+        {
+          q:"Corrigé — III. Optique",
+          r:`Formule des lentilles : 1/OA' = 1/f + 1/OA = 1/20 + 1/(−30) = 3/60 − 2/60 = 1/60 → OA' = 60 cm.
+L'écran doit être placé à 60 cm de la lentille.
+Grandissement γ = OA'/OA = 60/(−30) = −2 → A'B' = γ×AB = −2×10 = −20 cm.
+Taille réelle de l'image : 20 cm, image réelle et inversée.`
+        }
+      ]
+    }
+  ]
+},
+{
+  id:"svt-bepc-2025-normale",
+  cycle:"secondaire1", classe:"3e", serie:null, matiere:"SVT", examen:"BEPC", annee:2025, session:"Session normale",
+  duree:"2H",
+  exercices:[
+    {
+      titre:"Exercice 1",
+      points:"8 pts",
+      enonce:`Wiyao a lu cet extrait dans un document de biologie : « La peau est l'une des premières lignes de défense contre les infections. Elle joue un rôle crucial dans la protection contre les microbes pathogènes. Cependant, malgré cette barrière physique, des microbes peuvent réussir à pénétrer dans le corps causant ainsi des maladies. C'est l'exemple du paludisme, une maladie infectieuse transmise par les piqûres de moustiques infectés par des parasites. Une fois dans l'organisme, ces parasites causent des dommages accompagnés de symptômes chez l'individu malade. Pour éliminer ces agents pathogènes du paludisme, l'organisme fait recours aux moyens de la défense immunitaire innée ainsi qu'à ceux de la défense immunitaire acquise. Toutefois, la meilleure façon de lutter efficacement contre cette maladie, c'est d'adopter les mesures préventives ».
+N'ayant pas bien compris ce dont parle le texte, Wiyao vient alors à toi pour amples explications.`,
+      consignes:[
+        {
+          q:"Consigne 1 : explique-lui, avec quatre exemples précis dans chaque cas, quels sont les parasites, les symptômes et les mesures préventives dont parle le texte.",
+          r:`Parasites (4 espèces de plasmodium responsables du paludisme) : Plasmodium falciparum, P. vivax, P. ovale, P. malariae.
+Symptômes (4) : fièvre, frissons, maux de tête, courbatures.
+Mesures préventives (4) : dormir sous moustiquaire imprégnée, assainir l'environnement (éliminer les eaux stagnantes), utiliser des répulsifs, prendre une chimioprophylaxie (personnes à risque : femmes enceintes, enfants).`
+        },
+        {
+          q:"Consigne 2 : décris les moyens de défense immunitaire naturelle (innée) et ceux de la défense immunitaire acquise utilisés dans ce cas.",
+          r:`Défense innée (naturelle, immédiate, non spécifique) : la peau et les muqueuses comme barrières physiques, la phagocytose (les globules blancs ingèrent et détruisent les parasites dès leur entrée), la réaction inflammatoire.
+Défense acquise (spécifique) : les lymphocytes B produisent des anticorps spécifiques contre le plasmodium ; les lymphocytes T détruisent les cellules infectées. Cette réponse, plus lente à se mettre en place, laisse une mémoire immunitaire permettant une réaction plus rapide en cas de réinfection.`
+        }
+      ]
+    },
+    {
+      titre:"Exercice 2",
+      points:"6 pts",
+      enonce:`I. Réponds par vrai ou faux et corrige les affirmations fausses :
+1. La 23ème paire de chromosomes chez un garçon est XX.
+2. L'ADN est une molécule qui contient l'information génétique.
+3. L'excrétion des déchets dans l'urine est un processus uniquement effectué par les reins.
+4. Une maladie microbienne ne peut être transmise que des parents à l'enfant.
+
+II. Associe chaque terme à sa définition :
+Termes : 1. Gestation — 2. Diaphragmation — 3. Inspiration — 4. Agent vecteur — 5. Une artère — 6. Agent pathogène — 7. L'air courant — 8. Pollution
+Définitions : A. Phénomène actif permettant l'entrée de l'air — B. L'air qui circule dans les poumons au cours d'un mouvement respiratoire normal — C. Dégradation de l'environnement par les substances des déchets ou des nuisances diverses — D. C'est l'agent ou le microbe qui provoque une maladie — E. Vaisseau sanguin qui conduit le sang du cœur aux autres organes du corps — F. Mécanisme d'augmentation ou de diminution du diamètre de la pupille en fonction de l'intensité lumineuse qui pénètre dans l'œil — G. Période de développement du fœtus dans l'utérus de la femme — H. L'agent qui assure la transmission d'une maladie d'un individu malade à un individu sain
+
+III. Choisis la bonne réponse :
+1. La méthode de la glaire cervicale est une méthode contraceptive : naturelle / artificielle
+2. Le groupe sanguin O est appelé : donneur universel / receveur universel
+3. L'image d'un objet fixé par l'œil se forme sur : le cristallin / la rétine
+4. L'excitant naturel de la rétine est : l'acide / la lumière`,
+      consignes:[
+        {
+          q:"Corrigé — I. Vrai/Faux",
+          r:`1. Faux — chez le garçon, la 23ème paire est XY (XX chez la fille).
+2. Vrai.
+3. Vrai — la formation de l'urine (filtration, réabsorption, sécrétion) est un processus propre aux reins.
+4. Faux — une maladie microbienne peut aussi se transmettre par contact direct, par l'air, par l'eau, ou par piqûre d'insecte, pas seulement de parent à enfant.`
+        },
+        {
+          q:"Corrigé — II. Association",
+          r:`1-G · 2-F · 3-A · 4-H · 5-E · 6-D · 7-B · 8-C`
+        },
+        {
+          q:"Corrigé — III. QCM",
+          r:`1. naturelle · 2. donneur universel · 3. la rétine · 4. la lumière`
+        }
+      ]
+    },
+    {
+      titre:"Exercice 3",
+      points:"6 pts",
+      enonce:`1. Donne la composition du chyle. (1 pt)
+2. Cite les éléments intervenant dans un acte réflexe. (1,25 pt)
+3. La peau est le plus grand organe du corps humain.
+3.1 Par quel nom désigne-t-on la pratique qui consiste à utiliser des produits cosmétiques dangereux pour rendre sa peau claire ? (0,25 pt)
+3.2 Donne les conséquences de cette pratique. (1 pt)
+4. Réalise le schéma annoté de la coupe longitudinale du rein humain. (2,5 pts)`,
+      consignes:[
+        {
+          q:"Corrigé — 1 et 2",
+          r:`1. Chyle : lymphe blanchâtre riche en lipides (acides gras et glycérol) absorbés au niveau de l'intestin grêle, contenant aussi eau, sels minéraux et globules blancs.
+2. Éléments d'un acte réflexe : récepteur sensoriel, nerf sensitif (voie afférente), centre nerveux, nerf moteur (voie efférente), effecteur (muscle ou glande).`
+        },
+        {
+          q:"Corrigé — 3",
+          r:`3.1 La dépigmentation (blanchiment de la peau).
+3.2 Conséquences : fragilisation de la peau, risque de cancer cutané, infections cutanées, troubles hormonaux, complications rénales/hépatiques — les produits utilisés (hydroquinone, mercure) sont souvent toxiques.`
+        },
+        {
+          q:"Corrigé — 4 (schéma)",
+          r:`Schéma à réaliser : coupe longitudinale du rein montrant cortex (zone corticale), médulla (zone médullaire, pyramides de Malpighi), bassinet, et l'uretère.`
+        }
+      ]
+    }
+  ]
+},
+{
+  id:"svt-cr3t-grand-lome-2026",
+  cycle:"secondaire1", classe:"3e", serie:null, matiere:"SVT", examen:"Composition Régionale (3e trimestre)", annee:2026, session:"DRE Grand Lomé — Classe de 3e",
+  duree:"2H", coef:"2",
+  exercices:[
+    {
+      titre:"Exercice 1",
+      points:"8 pts",
+      enonce:`Suite au recensement général de la population effectué en 2022, les autorités de votre localité ont constaté une forte augmentation du taux de natalité alors que de nombreux jeunes sont confrontés au chômage et aux difficultés économiques.
+Afin de sensibiliser la population sur la maîtrise des naissances et la santé reproductive, une équipe de professionnels de santé organise une campagne d'information dans votre établissement scolaire. Cette campagne porte sur le fonctionnement du cycle sexuel féminin, la détermination de la période fertile et les méthodes contraceptives permettant d'éviter les grossesses non désirées.
+Au cours de cette séance, les documents 1 et 2 ont été présentés aux élèves : Document 1, le cycle sexuel féminin (28 jours) — développement des follicules, ovulation, formation puis régression du corps jaune ; Document 2, quelques méthodes contraceptives — préservatif masculin, préservatif féminin, pilule contraceptive, injection contraceptive, DIU (stérilet), implant contraceptif, diaphragme, méthode du calendrier.
+Une de tes camarades souhaite mieux comprendre les informations fournies par ces documents et déterminer sa période fertile, sachant que son cycle menstruel dure 28 jours et que ses dernières règles ont débuté le 15 avril.`,
+      consignes:[
+        {
+          q:"Consigne 1 : Explique le fonctionnement du cycle illustré par ces documents et détermine la période fertile de ta camarade.",
+          r:`Fonctionnement : sous l'action des hormones, des follicules se développent dans l'ovaire ; l'un d'eux arrive à maturité et libère l'ovule (c'est l'ovulation, vers le milieu du cycle) ; le follicule rompu se transforme en corps jaune, qui sécrète des hormones préparant l'utérus à une éventuelle grossesse ; en l'absence de fécondation, le corps jaune régresse et un nouveau cycle commence avec les règles.
+Calcul : pour un cycle de 28 jours, l'ovulation a lieu vers le 14e jour. Dernières règles le 15 avril → ovulation vers le 28 avril. En tenant compte de la durée de vie des gamètes (ovule ~24h, spermatozoïdes quelques jours), la période féconde se situe environ du 25 au 30 avril.`
+        },
+        {
+          q:"Consigne 2 : Propose quatre méthodes efficaces pour résoudre le problème de natalité dans cette localité tout en justifiant tes choix.",
+          r:`1. Sensibiliser la population à la planification familiale (permet aux couples d'espacer/choisir le nombre de leurs naissances).
+2. Faciliter l'accès aux méthodes contraceptives modernes dans les centres de santé (pilule, préservatif, DIU) — rend la maîtrise des naissances concrètement possible.
+3. Promouvoir la scolarisation et le maintien des jeunes filles à l'école (retarde l'âge de la première grossesse).
+4. Créer des opportunités d'emploi pour les jeunes (réduit la précarité qui pousse à des grossesses non planifiées).`
+        }
+      ]
+    },
+    {
+      titre:"Exercice 2",
+      points:"6 pts",
+      enonce:`I. Choisis la ou les bonne(s) réponse(s) :
+1. L'albinisme est une maladie : a) contagieuse b) génétique c) héréditaire.
+2. La drépanocytose est due à la présence d'hémoglobine de type : a) HbS b) HbC c) HbA en forte proportion.
+3. Les cellules sexuelles contiennent : a) 23 paires de chromosomes b) 23 chromosomes c) 46 chromosomes.
+4. Un individu du groupe sanguin B peut recevoir du sang d'un individu du : a) groupe O b) groupe A c) groupe B.
+5. La sérovaccination est la combinaison : a) de plusieurs vaccins b) d'un vaccin et d'un sérum c) de plusieurs sérums.
+6. Les globules blancs jouent le rôle de : a) transport des gaz respiratoires b) coagulation c) défense de l'organisme.
+7. La parturition correspond à : a) l'expulsion du placenta b) l'expulsion du fœtus c) l'expulsion du fœtus et du placenta.
+
+II. Identifie les éléments numérotés 1 à 8 sur le document (coupe de la moelle épinière et ses annexes, avec racines nerveuses, ganglion spinal, nerf rachidien et effecteur).
+
+III. Complète le texte à partir des mots proposés (les gonades ; trois, deux ; reins ; tubules ; glomérule ; définitive ; primitive ; sang ; plasma ; l'eau ; filtration glomérulaire ; réabsorption tubulaire) :
+« L'urine est un liquide produit par ...1... qui interviennent dans l'élimination des déchets de l'organisme. Sa formation se déroule en ...2... étapes. La première étape est la ...3... qui a lieu au niveau du ...4... Elle conduit à la formation de l'urine ...5... qui a pratiquement la même composition que ...6... La deuxième étape est ...7... Elle conduit à la formation de l'urine ...8... »`,
+      consignes:[
+        {
+          q:"Corrigé — I. QCM (réponses multiples possibles)",
+          r:`1-b,c (génétique et héréditaire — pas contagieuse) · 2-a (HbS) · 3-b (23 chromosomes, cellules haploïdes) · 4-a,c (groupe O et groupe B) · 5-b (un vaccin et un sérum) · 6-c (défense de l'organisme) · 7-c (expulsion du fœtus et du placenta).`
+        },
+        {
+          q:"Corrigé — II. Schéma (moelle épinière et annexes)",
+          r:`1. Substance blanche — 2. Substance grise — 3. Racine dorsale (sensitive) — 4. Racine ventrale (motrice) — 5. Ganglion spinal (rachidien) — 6. Nerf rachidien — 7. Nerf allant vers l'effecteur — 8. Muscle (effecteur).
+(Identification établie à partir de la disposition classique de ce schéma — à confronter à ton document original avant diffusion.)`
+        },
+        {
+          q:"Corrigé — III. Texte à trous (formation de l'urine)",
+          r:`1. les reins — 2. deux — 3. filtration glomérulaire — 4. glomérule — 5. primitive — 6. plasma — 7. réabsorption tubulaire — 8. définitive.`
+        }
+      ]
+    },
+    {
+      titre:"Exercice 3",
+      points:"6 pts",
+      enonce:`1. Réalise un schéma annoté de l'appareil respiratoire humain, en mettant en évidence la structure du poumon gauche. (2,5 pts)
+2. Énumère les types de vaisseaux sanguins, leurs caractéristiques. (1,5 pt)
+3. Nomme les produits finis de la digestion complète ainsi que les voies d'absorption des substances nutritives suivantes : l'amidon, les lipides, les protides et l'eau. (1,5 pt)
+4. Cite les phases de l'activité cardiaque. (0,5 pt)`,
+      consignes:[
+        {
+          q:"Corrigé — 1 (schéma)",
+          r:`Schéma à réaliser : appareil respiratoire (fosses nasales, trachée, bronches) avec le poumon gauche détaillé (lobes, bronchioles, alvéoles pulmonaires).`
+        },
+        {
+          q:"Corrigé — 2",
+          r:`Artères : paroi épaisse et élastique, sang sous forte pression, conduisent le sang du cœur vers les organes.
+Veines : paroi fine, présence de valvules, ramènent le sang vers le cœur, faible pression.
+Capillaires : paroi très fine (une seule couche de cellules), lieu des échanges entre le sang et les tissus.`
+        },
+        {
+          q:"Corrigé — 3",
+          r:`Amidon → glucose, absorbé par voie sanguine. Lipides → acides gras + glycérol, absorbés par voie lymphatique. Protides → acides aminés, absorbés par voie sanguine. Eau → absorbée telle quelle, par voie sanguine.`
+        },
+        {
+          q:"Corrigé — 4",
+          r:`Systole auriculaire → systole ventriculaire → diastole générale.`
+        }
+      ]
+    }
+  ]
+},
+{
+  id:"svt-bepc-blanc-sokode-2025",
+  cycle:"secondaire1", classe:"3e", serie:null, matiere:"SVT", examen:"BEPC Blanc n°1", annee:2025, session:"IESG-Sokodé — 12 au 14 février",
+  duree:"2H", coef:"2",
+  exercices:[
+    {
+      titre:"Exercice 1",
+      points:"8 pts",
+      enonce:`Ton petit frère ALIOU consomme un repas composé du riz mélangé au haricot, accompagné de la sauce d'arachide à la viande de poulet. Il va à la selle le lendemain matin. À sa grande surprise, il remarque des débris des graines du haricot dans ses selles. Il se pose alors des questions sur ce qui s'est passé avec les autres aliments qu'il avait consommés la veille. Il vient donc à toi.
+
+Consigne 1 : Aide-le à comprendre la présence de ces débris des graines du haricot et la disparition des autres aliments.
+Consigne 2 : Énumère les nutriments (produits finis) provenant du haricot et de la viande du poulet et ceux provenant de la sauce d'arachide (l'arachide contient 90% de lipides).`,
+      consignes:[
+        {
+          q:"Corrigé — Consigne 1",
+          r:`Les graines de haricot possèdent une enveloppe (tégument) riche en cellulose, une substance que l'organisme humain ne peut pas digérer (il ne possède pas d'enzyme capable de la dégrader) : ces débris ne sont donc ni digérés ni absorbés, et se retrouvent tels quels dans les selles.
+Le riz, la viande et l'arachide, eux, sont des aliments composés digérés par les enzymes digestives : ils sont transformés en nutriments simples (glucose, acides aminés, acides gras) qui sont absorbés au niveau de l'intestin et passent dans le sang ou la lymphe — d'où leur « disparition » apparente.`
+        },
+        {
+          q:"Corrigé — Consigne 2",
+          r:`Haricot (riche en amidon et en protéines végétales) → glucose et acides aminés.
+Viande de poulet (protides) → acides aminés.
+Sauce d'arachide (90% lipides) → acides gras et glycérol.`
+        }
+      ]
+    },
+    {
+      titre:"Exercice 2",
+      points:"6 pts",
+      enonce:`I. Réponds par vrai ou faux en corrigeant les fausses affirmations :
+1. Le nerf optique interprète et analyse l'image des objets.
+2. La dépigmentation est souvent à l'origine du cancer de la peau.
+3. Le cycle du développement du moustique se déroule chez deux hôtes.
+4. L'assimilation des nutriments se fait au niveau des villosités intestinales.
+5. Lors du passage des nutriments dans le sang, ils empruntent uniquement la voie sanguine.
+
+II. Choisis la bonne réponse :
+1. Les éléments figurés du sang sont : a) hématies, leucocytes, globulines b) hématies, leucocytes, fibrinogène c) hématies, leucocytes, plasma
+2. Parmi les maladies suivantes, laquelle est liée au fonctionnement des vaisseaux sanguins ? a) COVID-19 b) artériosclérose c) drépanocytose
+
+III. Remplace les chiffres par les mots manquants :
+« Au cours de la circulation pulmonaire, le sang rouge sombre riche en ...a... quitte le ventricule ...b... , arrive aux poumons en passant par l'...c... . Dans les poumons, il se débarrasse du dioxyde de carbone et s'enrichit en ...d... avant de revenir rouge clair dans l'oreillette gauche par l'intermédiaire des ...e... »`,
+      consignes:[
+        {
+          q:"Corrigé — I. Vrai/Faux",
+          r:`1. Faux — c'est le cerveau (cortex visuel) qui interprète et analyse l'image ; le nerf optique se contente de transmettre l'influx nerveux.
+2. Vrai.
+3. Faux — c'est le plasmodium (agent du paludisme) qui a un cycle de développement se déroulant chez deux hôtes (l'homme et le moustique) ; le moustique lui-même se développe dans l'eau.
+4. Faux — c'est l'absorption (et non l'assimilation) qui se fait au niveau des villosités intestinales ; l'assimilation se fait au niveau des cellules de l'organisme.
+5. Faux — les lipides empruntent la voie lymphatique (vaisseaux chylifères), pas seulement la voie sanguine.`
+        },
+        {
+          q:"Corrigé — II. QCM",
+          r:`1. Ce QCM semble comporter une erreur : les éléments figurés du sang sont normalement les hématies, les leucocytes et les plaquettes — or aucune des trois options proposées ne cite les plaquettes (elles citent globulines, fibrinogène ou plasma, qui sont des composants du plasma, pas des éléments figurés). À vérifier avec le sujet original avant diffusion.
+2. b) artériosclérose (maladie liée au durcissement/épaississement des artères).`
+        },
+        {
+          q:"Corrigé — III. Texte à trous",
+          r:`a. dioxyde de carbone — b. droit — c. artère pulmonaire — d. dioxygène — e. veines pulmonaires.`
+        }
+      ]
+    },
+    {
+      titre:"Exercice 3",
+      points:"6 pts",
+      enonce:`1. Fais le schéma annoté d'un arc réflexe. (2,5 pts)
+2. L'amidon cuit est transformé dans la bouche. Nomme l'enzyme qui intervient et le produit obtenu. (1 pt)
+3. Quelles sont les phases de la révolution cardiaque ? Que se passe-t-il à chaque phase ? (1,5 pt)
+4. Cite les grands groupes de microbes. (1 pt)`,
+      consignes:[
+        { q:"Corrigé — 1 (schéma)", r:`Arc réflexe : récepteur, nerf sensitif, centre nerveux (moelle épinière), nerf moteur, effecteur.` },
+        { q:"Corrigé — 2", r:`Enzyme : amylase salivaire (ptyaline). Produit obtenu : le maltose.` },
+        { q:"Corrigé — 3", r:`Systole auriculaire (contraction des oreillettes, envoie le sang vers les ventricules) → systole ventriculaire (contraction des ventricules, éjection du sang vers l'aorte et l'artère pulmonaire) → diastole générale (relâchement complet, remplissage des cavités).` },
+        { q:"Corrigé — 4", r:`Bactéries, virus, champignons (levures/moisissures), protozoaires (parasites unicellulaires comme le plasmodium).` }
+      ]
+    }
+  ]
+},
+{
+  id:"pct-bepc-blanc-sokode-2025",
+  cycle:"secondaire1", classe:"3e", serie:null, matiere:"Physique-Chimie", examen:"BEPC Blanc n°1", annee:2025, session:"IESG-Sokodé — 12 au 14 février",
+  duree:"2H", coef:"2",
+  exercices:[
+    {
+      titre:"Exercice 1 — Situation d'évaluation",
+      points:"8 pts",
+      enonce:`INOUSSA a l'habitude de participer à un jeu qu'il n'a jamais gagné. Cette fois-ci, il cherche tous les moyens d'y gagner. Le jeu consiste à mettre en mouvement une voiturette de masse m = 1280 g en appuyant sur la force correspondante, de telle sorte qu'elle ait une vitesse v qui lui permettrait d'avoir une énergie de 16 J à l'arrivée.
+Le dispositif propose trois forces : F1 = 2,5 N ; F2 = 3,2 N ; F3 = 5,7 N. La piste est horizontale, sans frottement, de longueur L = 5 m.
+Sachant que le travail est égal à l'énergie, trouve une solution à INOUSSA : quelle force doit-il utiliser et quelle sera la vitesse d'arrivée ?`,
+      consignes:[
+        {
+          q:"Corrigé",
+          r:`Forces agissant sur la voiturette au début du mouvement : le poids (vertical, vers le bas), la réaction normale du support (vertical, vers le haut, R=P puisque piste horizontale sans frottement) et la force motrice F (horizontale, dans le sens du mouvement).
+Travail = Énergie : W = F×L = Ec = 16 J → F = 16/5 = 3,2 N. C'est donc la force F2 qu'il faut utiliser.
+Vitesse d'arrivée : Ec = ½mv² → v² = 2×16/1,28 = 25 → v = 5 m/s.`
+        }
+      ]
+    },
+    {
+      titre:"Exercice 2",
+      points:"6 pts",
+      enonce:`A. Vrai ou faux :
+1. La représentation d'un objet de 100 m de long à l'échelle 1/1000 est 10 cm.
+2. En dessin technique, le plan est la projection orthogonale d'un objet.
+3. Une solution aqueuse est une solution dont le solvant est l'alcool.
+4. Une solution est électriquement neutre lorsqu'elle contient autant de cations que d'anions.
+
+B. Choisis la bonne réponse :
+1. Équation bilan : H2O + X → Al2O3 + Y. a) formules de X et Y : a1) Fe et H2 a2) Al et O2 a3) Al et H2. b) l'oxydant et le réducteur dans cet ordre : b1) X et H2O b2) Al2O3 et Y b3) H2O et X
+2. En enflammant 8 cm³ de dihydrogène dans 3 cm³ de dioxygène, il restera : a) aucun gaz b) du dihydrogène c) du dioxygène
+3. L'alcane dont le rapport entre son nombre d'atomes d'hydrogène et son nombre d'atomes de carbone est 2,5 est : a) le butane b) le propane c) le méthane
+
+C. Complète : « En branchant un transformateur au secteur, on obtient une tension de sortie de 11V. La tension d'entrée vaut ---a---. Son rapport de transformation est k= ---b--- : il s'agit d'un transformateur ---c--- de tension. Ayant 1000 spires au secondaire, son nombre de spires au primaire est alors ---d---. »`,
+      consignes:[
+        { q:"Corrigé — A. Vrai/Faux", r:`1. Vrai (100m×1/1000 = 0,1m = 10cm). 2. Vrai. 3. Faux — le solvant d'une solution aqueuse est l'eau, pas l'alcool. 4. Vrai.` },
+        {
+          q:"Corrigé — B. QCM",
+          r:`1. Réaction : 2Al + 3H2O → Al2O3 + 3H2 (aluminium + vapeur d'eau). a) réponse a3 (Al et H2). b) H2O est l'oxydant, Al le réducteur → réponse b3 (H2O et X).
+2. Équation : 2H2 + O2 → 2H2O. Pour 3 cm³ d'O2, il faut 6 cm³ de H2 ; sur les 8 cm³ disponibles, il en reste 2 cm³ → réponse b) du dihydrogène.
+3. Alcane CnH2n+2, rapport H/C = (2n+2)/n = 2,5 → n=4 → C4H10 → réponse a) le butane.`
+        },
+        { q:"Corrigé — C. Transformateur", r:`a. 220 V (tension secteur). b. k = 11/220 = 0,05. c. abaisseur. d. N1 = N2/k = 1000/0,05 = 20 000 spires.` }
+      ]
+    },
+    {
+      titre:"Exercice 3",
+      points:"6 pts",
+      enonce:`Partie A : L'équation bilan de la combustion complète d'un hydrocarbure A de formule CxHy est : CxHy + a O2 → 4CO2 + 5H2O.
+1. Détermine la formule brute et le nom de A. 2. À quelle famille d'hydrocarbures appartient A ? 3. Quelle est la valeur de a ?
+
+Partie B : Deux résistors R1 et R2 sont traversés par un même courant d'intensité I=0,5A et alimentés par un générateur de tension U=12V.
+1. Comment sont montées R1 et R2 ? 2. Calcule la résistance équivalente. 3. Détermine R1 sachant que R2=10Ω.
+
+Partie C : Pour déterminer la nature d'une solution S, on réalise deux tests. Test 1 : S + soude → précipité bleu. Test 2 : S + nitrate d'argent → précipité blanc qui noircit à la lumière.
+1. Donne les noms et formules des ions présents dans S. 2. Écris l'équation bilan de chaque test.`,
+      consignes:[
+        {
+          q:"Corrigé — Partie A",
+          r:`D'après l'équation : x=4 (4CO2), y=10 (5H2O → 10 H) → A = C4H10, le butane.
+Famille : les alcanes (hydrocarbures saturés).
+Équilibrage de l'oxygène : 2a = 4×2+5×1 = 13 → a = 6,5.`
+        },
+        {
+          q:"Corrigé — Partie B",
+          r:`1. Même courant dans les deux résistors → montage en série.
+2. Réq = U/I = 12/0,5 = 24 Ω.
+3. Réq = R1+R2 → R1 = 24−10 = 14 Ω.`
+        },
+        {
+          q:"Corrigé — Partie C",
+          r:`Précipité bleu avec la soude → hydroxyde de cuivre Cu(OH)2 → présence d'ions cuivre Cu²⁺.
+Précipité blanc noircissant à la lumière avec le nitrate d'argent → chlorure d'argent AgCl → présence d'ions chlorure Cl⁻. (Solution S = chlorure de cuivre II).
+Équations : Cu²⁺ + 2OH⁻ → Cu(OH)2 ; Ag⁺ + Cl⁻ → AgCl.`
+        }
+      ]
+    }
+  ]
+},
+{
+  id:"maths-bepc-blanc-sokode-2025",
+  cycle:"secondaire1", classe:"3e", serie:null, matiere:"Mathématiques", examen:"BEPC Blanc n°1", annee:2025, session:"IESG-Sokodé — 12 au 14 février",
+  duree:"2H", coef:"3",
+  exercices:[
+    {
+      titre:"Situation d'évaluation",
+      points:"8 pts",
+      enonce:`Le père de Nina dispose d'un terrain ABCD qu'il veut vendre à 50 000 F le dam². Il fait appel à un géomètre qui, arrivé sur les lieux, retrouve par GPS trois bornes A, B et C tels que : OA = 7OI + OJ ; BO = −8OI − 4OJ ; C(−1 ; 7). Il veut connaître la nature du terrain ABCD sachant que les 4 bornes A, B, C et D forment un parallélogramme. Nina, élève en classe de 3e, vous sollicite.
+Consigne 1 : Trouve la nature du parallélogramme ABCD après avoir calculé les coordonnées du point D, puis fais la figure dans un repère orthonormé (O, I, J).
+Consigne 2 : Détermine le prix de vente du terrain sachant que AB = √10 et BC = 3√10. (NB : prendre 1 décamètre pour 1 centimètre.)`,
+      consignes:[
+        {
+          q:"Corrigé — Consigne 1",
+          r:`A(7 ; 1) (d'après OA = 7OI+OJ). B(8 ; 4) (d'après BO=−8OI−4OJ, donc O−B=(−8,−4) → B=(8,4)). C(−1 ; 7) donné.
+Les diagonales d'un parallélogramme ont le même milieu : milieu de [AC] = ((7−1)/2 ; (1+7)/2) = (3 ; 4). Donc milieu de [BD] = (3 ; 4) → D = (2×3−8 ; 2×4−4) = (−2 ; 4).
+Vecteur AB = (1 ; 3), vecteur BC = (−9 ; 3). Produit scalaire AB·BC = 1×(−9)+3×3 = 0 → AB ⊥ BC.
+ABCD est un parallélogramme avec un angle droit : c'est donc un rectangle.`
+        },
+        {
+          q:"Corrigé — Consigne 2",
+          r:`Aire du rectangle = AB × BC = √10 × 3√10 = 3×10 = 30 dam².
+Prix de vente = 30 × 50 000 = 1 500 000 F CFA.`
+        }
+      ]
+    },
+    {
+      titre:"Exercice 2",
+      points:"6 pts",
+      enonce:`I. Vrai ou faux :
+a) (√5−1)/2 et (√5+1)/2 sont opposés.
+b) ]5 ; →[ ∩ [−2 ; 11[ = [5 ; 11[
+c) Si 1,414 < √2 < 1,415, alors l'encadrement d'ordre 2 de 5−3√2 est 0,75 < 5−3√2 < 0,76.
+d) cos54° = sin36°
+
+II. Choisis la bonne réponse :
+1. √((2−√5)²) est égale à : a) −2+√5 b) 9−√5 c) +2−√5
+2. L'équation (−2x+6)(x−7)=0 a pour solution : a) S={−7;−3} b) S={3;7} c) S={6;7}
+3. MES est rectangle en S, SE=3cm, SM=4cm, ME=5cm. sin(SME) est : a) 0,6 b) 0,8 c) 0,75
+4. L'écriture sans radical au dénominateur de A=(√2−5)/(3√2−6) est : a) (8−3√2)/6 b) (8+3√2)/6 c) (19+15√2)/24
+
+III. Complète :
+1. Si les vecteurs EM et FM sont ...(a)..., alors M appartient à la droite (EF).
+2. Le centre du cercle circonscrit à un triangle rectangle est le milieu de ...(b)...
+3. La racine carrée du ...(c)... d'un nombre est égale à la valeur ...(d)... de ce nombre.`,
+      consignes:[
+        {
+          q:"Corrigé — I. Vrai/Faux",
+          r:`a. Faux — leur somme vaut √5 ≠ 0, ils ne sont pas opposés.
+b. Faux — l'intersection est ]5 ; 11[ (5 est exclu de ]5;→[), pas [5;11[.
+c. Vrai — 5−3(1,415)=0,755 et 5−3(1,414)=0,758 ; à l'ordre 2, cela donne bien 0,75 < 5−3√2 < 0,76.
+d. Vrai — cos54° = sin(90°−54°) = sin36°.`
+        },
+        {
+          q:"Corrigé — II. QCM",
+          r:`1-a (√5≈2,24>2 donc 2−√5<0, donc √((2−√5)²)=|2−√5|=√5−2=−2+√5).
+2-b (S={3;7}).
+3-a (sin(SME)=SE/ME=3/5=0,6).
+4-b : A=(√2−5)/[3(√2−2)], en multipliant par (√2+2)/(√2+2) → A=(8+3√2)/6.`
+        },
+        {
+          q:"Corrigé — III. Complète",
+          r:`a. colinéaires. b. l'hypoténuse. c. carré — d. absolue.`
+        }
+      ]
+    },
+    {
+      titre:"Exercice 3",
+      points:"6 pts",
+      enonce:`A/ Triangle ABC rectangle en A, AB=8cm, AC=4cm. I sur [AB] tel que IB=5. J milieu de [BC].
+1) Fais une figure. 2a) Calcule BC et CI. 2b) Que représente (IJ) pour [BC] ? Nature du triangle ICB ? 3) Soit α la mesure de l'angle ACB. Calcule tan α. 4-5) La parallèle à (AC) passant par I coupe (BC) en E. Calcule BE et EI.
+
+B/ On considère R = [(x−5)(4x+7)] / [(3x+2)(x−5)]
+1) Condition d'existence. 2) Simplifie R. 3) Résous R=1.`,
+      consignes:[
+        {
+          q:"Corrigé — A",
+          r:`2a. BC² = AB²+AC² = 64+16 = 80 → BC = 4√5. AI = AB−IB = 8−5 = 3. CI² = AI²+AC² = 9+16 = 25 → CI = 5.
+2b. IB = CI = 5 : le triangle ICB est isocèle en I. Comme J est le milieu de [BC], (IJ) est la médiatrice de [BC].
+3. tan α = AB/AC = 8/4 = 2.
+4-5. D'après Thalès (IE//AC) : BI/BA = BE/BC = IE/AC → 5/8 = BE/(4√5) = IE/4. Donc BE = 5×4√5/8 = 5√5/2 cm ; IE = 5×4/8 = 2,5 cm.`
+        },
+        {
+          q:"Corrigé — B",
+          r:`1. Condition d'existence : (3x+2)(x−5)≠0 → x≠−2/3 et x≠5.
+2. En simplifiant par (x−5) (valable car x≠5) : R = (4x+7)/(3x+2).
+3. R=1 → 4x+7=3x+2 → x=−5 (valeur compatible avec les conditions d'existence).`
+        }
+      ]
+    }
+  ]
+},
+{
+  id:"histoire-geo-bepc-blanc-sokode-2025",
+  cycle:"secondaire1", classe:"3e", serie:null, matiere:"Histoire-Géo", examen:"BEPC Blanc n°1", annee:2025, session:"IESG-Sokodé — 12 au 14 février",
+  duree:"2H", coef:"2",
+  exercices:[
+    {
+      titre:"Partie A — Situation d'évaluation",
+      points:"8 pts",
+      enonce:`Ton oncle Salifou vit à Lomé depuis 15 ans. Il constate que cette ville et ses environs reçoivent moins de pluies que Notsè, Tsévié et Agou. Il remarque aussi que plusieurs activités se développent autour des cours d'eau dans la zone et au-delà.
+Consigne 1 : Relève les causes de cette faible pluviométrie enregistrée à Lomé. (4 pts)
+Consigne 2 : Montre que les cours d'eau au Togo ont une importance dans l'économie. (4 pts)`,
+      consignes:[
+        {
+          q:"Corrigé — Consigne 1",
+          r:`Lomé se situe dans une zone côtière soumise à l'effet du courant marin froid, qui refroidit l'air et limite la formation de nuages pluvieux. Contrairement à Agou (zone de relief), Lomé ne bénéficie pas de pluies orographiques faute de relief élevé. La végétation moins dense en zone côtière réduit aussi l'évapotranspiration locale.`
+        },
+        {
+          q:"Corrigé — Consigne 2",
+          r:`Les cours d'eau permettent : l'irrigation des cultures (maraîchage, riziculture) ; la pêche (source de revenus et d'alimentation) ; la production d'hydroélectricité (ex. barrage de Nangbéto sur le Mono) ; l'approvisionnement en eau pour la consommation et l'élevage ; et, dans certaines zones, le transport fluvial.`
+        }
+      ]
+    },
+    {
+      titre:"Partie B — Questions objectives",
+      points:"6 pts",
+      enonce:`1. Vrai ou faux :
+a. L'œuvre la plus gigantesque réalisée par les Allemands au Togo s'est faite dans le secteur agricole.
+b. Le Togo sous domination coloniale allemande s'est passé de 1884 à 1904.
+c. L'ONU a constitué un frein dans le processus de la décolonisation des pays du tiers-monde.
+d. Dans la lutte de libération du joug colonial au Togo, l'UCPN était un parti nationaliste.
+
+2. Choisis la bonne réponse :
+a. La balance commerciale au temps des Allemands était (équilibrée, déficitaire, excédentaire).
+b. Aja Kpoyizoun a lutté contre les (français, allemands, anglais, portugais).
+c. La 1ère guerre mondiale a commencé au Togo le (12, 16, 26) août 1914.
+d. La pyramide des âges du Togo présente une base (large, rétrécie, effilée).
+e. Éboulement et glissement de terrain sont des risques liés (à la végétation, au relief, au climat).
+
+3. Associe : a-Fuite de cerveaux, b-École normale d'Atakpamé, c-Agriculture moderne, d-Pillage des ressources minières, e-Journées de vaccination
+à : a-Mécanisation, b-Œuvres sociales allemandes, c-Conséquence des migrations, d-Œuvres sociales françaises, e-Conséquence de l'économie de traite.`,
+      consignes:[
+        {
+          q:"Corrigé — 1. Vrai/Faux",
+          r:`a. Faux — l'œuvre la plus gigantesque des Allemands concernait plutôt les infrastructures (routes, chemin de fer).
+b. Faux — la colonisation allemande du Togo a duré de 1884 à 1914, pas 1904.
+c. Faux — l'ONU a plutôt favorisé la décolonisation (droit des peuples à disposer d'eux-mêmes, système de tutelle).
+d. Vrai.`
+        },
+        {
+          q:"Corrigé — 2. QCM",
+          r:`a. excédentaire. b. allemands. c. la date exacte parmi les trois choix proposés n'est pas certaine avec confiance — à vérifier avec le cours (l'attaque alliée du Togo a historiquement débuté début août 1914). d. large. e. au relief.`
+        },
+        {
+          q:"Corrigé — 3. Association",
+          r:`Fuite de cerveaux → conséquence des migrations. École normale d'Atakpamé → œuvres sociales françaises. Agriculture moderne → mécanisation. Pillage des ressources minières → conséquence de l'économie de traite. Journées de vaccination → œuvres sociales allemandes.`
+        }
+      ]
+    },
+    {
+      titre:"Partie C — Questions traditionnelles",
+      points:"6 pts",
+      enonce:`1. Définis : impérialisme, économie de traite. (1 pt)
+2. Pourquoi parle-t-on du caractère universel de l'impérialisme ? (1 pt)
+3. Dis pourquoi en 1906 le Togo était qualifié de colonie modèle. (1 pt)
+4a. Cite deux souverains togolais ayant résisté face à la pénétration européenne. (0,5 pt)
+4b. Sur une carte du Togo allemand, place les foyers de résistance des peuples.`,
+      consignes:[
+        {
+          q:"Corrigé — 1 à 3",
+          r:`1. Impérialisme : politique d'expansion et de domination d'un État puissant sur d'autres territoires/peuples, à des fins économiques et politiques. Économie de traite : système colonial basé sur l'exportation de matières premières brutes et l'importation de produits manufacturés, sans transformation locale.
+2. Parce que l'impérialisme a touché presque tous les continents et a été pratiqué par plusieurs puissances (Angleterre, France, Allemagne, Portugal...) : c'est donc un phénomène mondial.
+3. Le Togo était présenté comme « colonie modèle » car il affichait un équilibre budgétaire, une balance commerciale excédentaire, et des infrastructures développées (routes, chemin de fer, télégraphe), sans recourir à des méthodes trop coûteuses pour la métropole.`
+        },
+        {
+          q:"Corrigé — 4",
+          r:`4a. Les noms précis des souverains attendus dans ce cours ne sont pas certains sans le support de cours exact — Aja Kpoyizoun (cité en partie 2) en est un ; à compléter avec le second nom vu en classe.
+4b. Carte à réaliser, plaçant les foyers de résistance sur les contours du Togo allemand.`
+        }
+      ]
+    }
+  ]
+},
+{
+  id:"ecm-bepc-blanc-sokode-2025",
+  cycle:"secondaire1", classe:"3e", serie:null, matiere:"ECM", examen:"BEPC Blanc n°1", annee:2025, session:"IESG-Sokodé — 12 au 14 février",
+  duree:"2H", coef:"2",
+  exercices:[
+    {
+      titre:"Partie A — Situation d'évaluation",
+      points:"8 pts",
+      enonce:`À l'approche des élections, le Ministre de la sécurité annonce à la radio : « Les médias doivent jouer dans l'impartialité leur rôle pour consolider la démocratie dans notre pays le Togo. Alors, les médias, en fonction de leurs caractéristiques en démocratie, doivent jouer leur partition ». Ton oncle te sollicite pour mieux comprendre.
+Consigne 1 : Présente les caractéristiques des médias en démocratie.
+Consigne 2 : Relève les rôles des médias dans la lutte contre l'extrémisme violent.`,
+      consignes:[
+        {
+          q:"Corrigé — Consigne 1",
+          r:`Caractéristiques des médias en démocratie : pluralisme (diversité des médias publics et privés), liberté de la presse (indépendance vis-à-vis du pouvoir), impartialité et objectivité dans le traitement de l'information, accessibilité au grand public, rôle de contre-pouvoir (surveillance de l'action publique).`
+        },
+        {
+          q:"Corrigé — Consigne 2",
+          r:`Rôles des médias contre l'extrémisme violent : sensibiliser et informer la population sur ses dangers, dénoncer les discours de haine et la propagande extrémiste, promouvoir la paix et le vivre-ensemble, relayer les messages de prévention des autorités.`
+        }
+      ]
+    },
+    {
+      titre:"Partie B — Questions objectives",
+      points:"6 pts",
+      enonce:`1. Vrai ou faux :
+a. La hiérarchie des normes place au sommet le président du conseil.
+b. Lorsqu'on change de constitution, on change de République.
+c. Le Togo est sous le régime parlementaire.
+d. Le phénomène de l'extrémisme violent s'oppose à la paix.
+
+2. Choisis la bonne réponse :
+a. L'institution chargée d'organiser les élections au Togo est (la cour constitutionnelle, la CENI, la HAAC).
+b. Le vote par lequel le peuple rejette ou approuve une nouvelle constitution s'appelle (une élection, un référendum, les législatives).
+c. En milieu scolaire, la démocratie (est bafouée, est pratiquée).
+d. Un risque lié au mauvais usage des réseaux sociaux est (le cyberharcèlement, l'information recherchée).
+
+3. Complète : « ...a... est l'ensemble des textes juridiques qui définit les différents ...b... qui composent l'État et organise leur relation. Celle de la Ve République promulguée le ...c... prévoit la ...d... des trois pouvoirs de l'État. »`,
+      consignes:[
+        {
+          q:"Corrigé — 1. Vrai/Faux",
+          r:`a. Faux — au sommet de la hiérarchie des normes se trouve la Constitution, pas une personne.
+b. Vrai — un changement de constitution correspond généralement à une nouvelle République.
+c. Vrai, dans le cadre de la Ve République togolaise (nouvelle constitution de 2024, régime parlementaire avec un Président du Conseil).
+d. Vrai.`
+        },
+        {
+          q:"Corrigé — 2. QCM",
+          r:`a. la CENI. b. un référendum. c. est pratiquée. d. le cyberharcèlement.`
+        },
+        {
+          q:"Corrigé — 3. Texte à trous",
+          r:`a. La Constitution. b. organes (institutions) de l'État. c. la date précise de promulgation n'est pas certaine avec confiance — à vérifier avec le cours (courant 2024). d. séparation (des trois pouvoirs).`
+        }
+      ]
+    },
+    {
+      titre:"Partie C — Questions traditionnelles",
+      points:"6 pts",
+      enonce:`1. Définis : la hiérarchie des normes ; un réseau social ; la police des examens ; TIC. (2 pts)
+2. Propose deux attitudes à adopter pour être en règle avec la police des examens. (2 pts)
+3. Le code électoral a prévu trois phases pour organiser des élections justes et transparentes. Cite-en deux. (1 pt)
+4. Énumère deux dangers liés au mauvais usage des réseaux sociaux chez les jeunes. (1 pt)`,
+      consignes:[
+        {
+          q:"Corrigé",
+          r:`1. Hiérarchie des normes : organisation pyramidale des textes juridiques d'un État, où chaque norme doit être conforme à celle qui lui est supérieure (Constitution au sommet). Réseau social : plateforme numérique permettant de communiquer et de partager des contenus en ligne. Police des examens : ensemble des règles et mesures garantissant le bon déroulement et l'intégrité des examens. TIC : Technologies de l'Information et de la Communication.
+2. Ne pas frauder (aucun document/objet non autorisé) ; respecter les consignes et les horaires.
+3. La révision des listes électorales ; la campagne électorale (une troisième phase existe également : le scrutin/dépouillement).
+4. Le cyberharcèlement ; l'addiction (dépendance) aux écrans.`
+        }
+      ]
+    }
+  ]
+},
+{
+  id:"francais-bepc-blanc-sokode-2025",
+  cycle:"secondaire1", classe:"3e", serie:null, matiere:"Français", examen:"BEPC Blanc n°1", annee:2025, session:"IESG-Sokodé — 12 au 14 février",
+  duree:"2H", coef:"2",
+  exercices:[
+    {
+      titre:"Première partie — Dictée",
+      points:"6 pts",
+      enonce:`Dictée : « La paix »
+« Voyez vous-même. Des hommes incapables de faire régner la paix dans leur propre foyer, ne peuvent qu'incendier tout le royaume. [...] Nous devons faire la paix coûte que coûte... Vos épouses pleurent tous les jours dans vos foyers la perte de leurs enfants sur le champ de bataille. Ce n'est pas parce que vous étouffez leurs sanglots dans la gorge qu'elles ne pleurent pas. Après leurs enfants, elles pleurent des frères, des parents qui se trouvent dans l'autre camp adverse. »
+— Ayayi Togoata APEDOH-AMAH, La guerre civile des aputaga, Éditions Awoudy`,
+      consignes:[
+        { q:"Note", r:`Il s'agit d'un texte à dicter (exercice d'orthographe) — pas de consigne à corriger, le texte lui-même sert de référence pour la dictée.` }
+      ]
+    },
+    {
+      titre:"Deuxième partie — Texte et questions",
+      points:"6 pts",
+      enonce:`Texte : « LES ROUTES SANGLANTES DE L'EXIL » (extrait), Moïse O. INANDJO
+Au volant, Aurélie pensait toujours à son mari, mais chaque fois qu'elle tentait de le joindre, il ne décrochait pas... Le regard traumatique des enfants plongeait de plus en plus la femme dans l'angoisse. Dans son anxiété, elle se retrouva face à un barrage militaire. Les hommes en armes l'interpellèrent et lui demandèrent où elle se rendait avec les enfants. Ayant remarqué que c'était l'armée républicaine, elle présenta sa pièce d'identité qui confirmait qu'elle était la femme du respecté capitaine KIRIBO. Ils fouillèrent néanmoins la voiture avant d'attirer l'attention de la dame sur les éventuelles embuscades auxquelles elle pourrait faire face le long de la route... Elle poursuivit néanmoins sa route mais découvrit avec frayeur deux cadavres dont les corps gisaient dans le sang. Alors qu'elle se questionnait sur ce qui se passait dans cette zone, elle fut arrêtée par un coup de sifflet. Six militaires puissamment armés sortirent des herbes et entourèrent la voiture. Aurélie trembla de peur. Elle sortit sans se faire prier et leva les bras. L'un d'eux s'approcha et lui demanda où elle allait. « Partout où elle retrouverait la paix », répondit-elle intelligemment...
+
+Questions :
+1a. Relève dans le texte le nom et la profession du mari d'Aurélie.
+1b. Aurélie part avec son mari. Vrai ou faux ?
+1c. Aurélie va partout où elle trouverait la paix. Vrai ou faux ?
+2. Trouve dans le texte deux mots synonymes du mot « peur ».
+3. Relève deux mots ou expressions qui montrent que le chemin d'exil est mortel.
+4. « Les hommes en armes lui demandèrent où elle se rendait avec les enfants. » Cette phrase est-elle une interrogation directe ou indirecte ?
+6. « L'un d'eux lui demanda où elle allait. » Transforme cette phrase en discours direct.
+7. « Elle présenta sa pièce d'identité qui confirmait qu'elle était la femme du respecté capitaine KIRIBO. » Transforme la subordonnée relative soulignée au participe présent du verbe « confirmer ».`,
+      consignes:[
+        { q:"Corrigé — 1", r:`1a. Nom : KIRIBO. Profession : capitaine (militaire). 1b. Faux — elle est seule avec les enfants, son mari ne décroche pas au téléphone. 1c. Vrai.` },
+        { q:"Corrigé — 2 et 3", r:`2. Frayeur, angoisse (ou anxiété). 3. « deux cadavres dont les corps gisaient dans le sang » et « les éventuelles embuscades ».` },
+        { q:"Corrigé — 4, 6, 7", r:`4. Interrogation indirecte.
+6. Discours direct : L'un d'eux lui demanda : « Où allez-vous ? »
+7. Elle présenta sa pièce d'identité confirmant qu'elle était la femme du respecté capitaine KIRIBO.` }
+      ]
+    },
+    {
+      titre:"Troisième partie — Production écrite",
+      points:"8 pts",
+      enonce:`Sujet 1 : Tu vis avec tes parents dans une ville du pays. Une situation qui ne favorisait pas la paix pour la famille vous oblige à quitter cette ville pour une autre. Raconte les faits en insistant sur la situation de départ, le départ lui-même et la situation finale.
+
+Sujet 2 : C'est une situation de guerre qui conduit Aurélie et ses enfants à prendre la route de l'exil. Produis un texte en exposant les conséquences que cette migration involontaire peut entraîner sur la vie de cette famille ou d'une famille.`,
+      consignes:[
+        {
+          q:"Guide de rédaction",
+          r:`Sujet 1 (récit) : structurer en trois temps — situation de départ (contexte, cause du conflit), le départ (déroulement, émotions, difficultés du trajet), situation finale (arrivée, adaptation à la nouvelle ville). Utiliser le passé (imparfait pour la description, passé simple/composé pour les actions).
+Sujet 2 (texte argumentatif/expositif) : présenter plusieurs conséquences de la migration forcée — perte des repères, rupture familiale, difficultés économiques et scolaires, traumatismes psychologiques — en les illustrant d'exemples concrets liés à la situation d'Aurélie.
+Il n'y a pas de « corrigé » unique pour une production écrite : l'évaluation porte sur la pertinence, la cohérence, la richesse de la langue et la correction grammaticale (critères PP/CL/CI/P donnés dans le sujet).`
+        }
+      ]
+    }
+  ]
+},
+{
+  id:"anglais-bepc-blanc-sokode-2025",
+  cycle:"secondaire1", classe:"3e", serie:null, matiere:"Anglais", examen:"BEPC Blanc n°1", annee:2025, session:"IESG-Sokodé — 12 au 14 février",
+  duree:"2H", coef:"2",
+  exercices:[
+    {
+      titre:"I. Reading comprehension",
+      points:"6 marks",
+      enonce:`Text: A football match
+Last December, I went to a football match that opposed two national teams: Ghana Black Stars versus Super Eagles of Nigeria. The match was played at Babayara Stadium in Accra. There were more than ten thousand spectators dressed in the colours of national flags. They sang and played drums. The Black Stars of Ghana were in white jerseys and Nigerians in Green. The match started at half past three. Just fifteen minutes after, the Super Eagles scored the first goal from a corner. An awful silence fell on the seats as Ghana supporters were more numerous than Nigerians. But songs and clappings at the other side. Right before the first half-time, a Ghanaian attacker equalized through a terrific shot. At the second half-time both teams played well. But two minutes before the end, Andre Ayew, the captain of Black Stars, got the ball, dribbled two defenders and scored the second goal. What a player! What a noise! I have never seen such an exciting match.
+
+Questions:
+1. Where did the match take place?
+2. Black Stars were in white jerseys; True or False?
+3. Complete: At half past three, ........................
+4. Were Nigerian spectators more numerous than Ghanaians? (Short answer)
+5. Choose the right proposal: The final score was: a) 2-0 b) 1-1 c) 2-1
+6. Name two famous players you know in the world.`,
+      consignes:[
+        { q:"Corrigé", r:`1. It took place at Babayara Stadium in Accra.
+2. True.
+3. At half past three, the match started.
+4. No, they weren't (Ghana supporters were more numerous).
+5. c) 2-1.
+6. Open answer — e.g. Lionel Messi, Cristiano Ronaldo.` }
+      ]
+    },
+    {
+      titre:"II. Linguistic Competence",
+      points:"6 marks",
+      enonce:`A. Vocabulary:
+1) Find the antonym of: a defeat ≠ ...........
+2) Derive a noun from: to support = ...........
+3-5) Match: 3-Keyboard, 4-Wedding, 5-Homelessness with a-Immigration, b-Dowry, c-ICT
+6) Complete the gaps: r-b-ery = ...........
+
+B. Grammar:
+1. Our team is (strong) than yours.
+2. Koffi was the (good) student in the class.
+3. Turn into opposite speech: Daddy told me not to take a drug.
+4. Choose: You behave (as – like) your brother.
+5. Correct the verb: Young people are used to (to immigrate) to Europe.
+6. Rephrase: a) Though Janet is beautiful, she can't find a husband. b) Despite ...................`,
+      consignes:[
+        { q:"Corrigé — A. Vocabulary", r:`1. a victory. 2. support (noun). 3-c (Keyboard–ICT), 4-b (Wedding–Dowry), 5-a (Homelessness–Immigration). 6. robbery.` },
+        { q:"Corrigé — B. Grammar", r:`1. stronger. 2. the best. 3. Direct speech: Daddy said, "Don't take drugs." 4. like. 5. immigrating. 6. Despite being beautiful, Janet can't find a husband.` }
+      ]
+    },
+    {
+      titre:"III. Writing",
+      points:"6 marks",
+      enonce:`You have just passed your BEPC exam. Joyfully, you come to your uncle Omar to give him the information. He asks you what you like as a present and you choose a computer. But he can't see how important it may be for you. In a dialogue of not more than 7 exchanges each, show him the importance of a computer for a student.`,
+      consignes:[
+        {
+          q:"Exemple de dialogue",
+          r:`Uncle: Congratulations on passing your BEPC! What would you like as a present?
+Student: Thank you, Uncle! I would like a computer, please.
+Uncle: A computer? I don't understand why you need one.
+Student: It helps me research information for my studies easily.
+Uncle: Can't you just use books for that?
+Student: Books are useful, but a computer gives me access to many more resources online.
+Uncle: What else can it do for you?
+Student: It helps me type and prepare my school assignments neatly.
+Uncle: Is it also useful for your future?
+Student: Yes, many jobs today require computer skills, so it will prepare me for my career.
+Uncle: Alright, I understand now. I will buy you a computer.
+Student: Thank you so much, Uncle!`
+        }
+      ]
+    }
+  ]
+},
+{
+  id:"pct-bepc-blanc-golfe-2025",
+  cycle:"secondaire1", classe:"3e", serie:null, matiere:"Physique-Chimie", examen:"BEPC Blanc", annee:2025, session:"IESG-Golfe — Zone Amadahomé",
+  duree:"2H", coef:"3",
+  exercices:[
+    {
+      titre:"Exercice 1",
+      points:"8 pts",
+      enonce:`Au cours d'une randonnée, un de tes camarades à vélo, dont la masse est estimée à 80 kg, parcourt la portion RFI. Il quitte le point R sans vitesse initiale (vR=0 m/s), passe le point F avec une vitesse vF=16 m/s, et arrive au point I au sommet d'une colline avec une vitesse vI=10 m/s.
+Données : hauteur de R au-dessus de F, H=12,8 m. Hauteur de I au-dessus de F, h=7,8 m. (g=10 N/kg)
+Il estime que son énergie mécanique n'a pas varié le long de son parcours. Vérifie son affirmation.`,
+      consignes:[
+        {
+          q:"Corrigé",
+          r:`En prenant F comme référence des altitudes (h=0), et en notant Em = énergie potentielle + énergie cinétique = mgh + ½mv² :
+En R : Em = m×10×12,8 + 0 = 128m
+En F : Em = m×10×0 + ½×m×16² = 128m
+En I : Em = m×10×7,8 + ½×m×10² = 78m + 50m = 128m
+Les trois valeurs sont identiques (128m, soit 10 240 J pour m=80 kg) : l'énergie mécanique est bien restée constante. L'affirmation de ton camarade est donc vraie.`
+        }
+      ]
+    },
+    {
+      titre:"Exercice 2",
+      points:"6 pts",
+      enonce:`A. Réponds par vrai ou faux :
+1. Les solutions aqueuses sont classées en deux grands groupes.
+2. Une solution basique contient majoritairement des ions H3O⁺.
+3. Dans un détecteur de lumière, le capteur est une thermistance ou LDR.
+4. Le vent et le soleil sont des sources d'énergie renouvelable.
+
+B. Complète le texte avec les mots de la liste (Électrique, acide, informatiques, hydroxydes, capteurs, neutralité, programme, BBT, ordinateur, basique, logiciel, hydrogène, techniques, dilution, spécifique) :
+« Un ...1... Scientifique est un ...2... conçu pour aider à résoudre des problèmes scientifiques et ...3... Plus on ajoute de l'eau à une solution ...4..., la concentration des ions ...5... augmente si bien que le pH de la solution finale augmente par rapport à la solution initiale. Cette opération d'addition s'appelle la ...6... »
+
+C. Choisis la bonne réponse :
+1. Le nombre total d'atomes dans un alcane est 8. Sa formule brute est : a) C2H6 b) C3H6 c) C4H10
+2. Un eudiomètre contient 48 cm³ de dihydrogène et 32 cm³ de dioxygène. On produit une étincelle. À la fin, il reste du dioxygène. Ce volume restant est : a) 16 cm³ b) 6 cm³ c) 8 cm³
+3. Lors de l'électrolyse de l'eau, on recueille 60 cm³ d'un gaz à la cathode. Le volume du gaz recueilli à l'anode est : a) 120 cm³ b) 30 cm³ c) 60 cm³
+
+D. Recopie et complète le tableau de caractérisation :
+Formule de l'ion | Nom de l'ion | Réactif utilisé | Équation bilan | Couleur du précipité
+Fe²⁺ | | | |
+| | | | Rouille`,
+      consignes:[
+        { q:"Corrigé — A. Vrai/Faux", r:`1. Faux — les solutions aqueuses se classent en trois groupes (acide, basique, neutre).
+2. Faux — c'est la solution acide qui contient majoritairement des ions H3O⁺ ; la basique contient majoritairement des OH⁻.
+3. Faux — le capteur de lumière est une LDR ; la thermistance est un capteur de température.
+4. Vrai.` },
+        { q:"Corrigé — B. Texte à trous", r:`1. logiciel — 2. programme — 3. techniques — 4. acide — 5. hydroxydes — 6. dilution.
+(En diluant une solution acide, la concentration des ions H3O⁺ diminue, donc celle des ions OH⁻ augmente relativement — d'où la hausse du pH.)` },
+        { q:"Corrigé — C. QCM", r:`1-a : nombre d'atomes = n+(2n+2)=8 → n=2 → C2H6.
+2-c : réaction 2H2+O2→2H2O ; 48cm³ H2 consomme 24cm³ O2 (sur 32 disponibles) → il reste 8 cm³ de O2.
+3-b : le gaz à la cathode est le dihydrogène (60cm³) ; celui à l'anode (dioxygène) en volume moitié → 30 cm³.` },
+        { q:"Corrigé — D. Tableau", r:`Fe²⁺ : ion fer II (ferreux) ; réactif = solution de soude (NaOH) ; équation : Fe²⁺+2OH⁻→Fe(OH)2 ; précipité vert.
+Fe³⁺ : ion fer III (ferrique) ; réactif = solution de soude (NaOH) ; équation : Fe³⁺+3OH⁻→Fe(OH)3 ; précipité rouille.` }
+      ]
+    },
+    {
+      titre:"Exercice 3",
+      points:"6 pts",
+      enonce:`I. On dilue un volume de 3 cm³ d'une solution S de pH initial pHi=2,5.
+1. Donne la nature de cette solution initiale. 2. Comment varie le pH lors de la dilution ? 3. La solution obtenue après dilution a un pH final pHf=4,5.
+a. De combien de fois a-t-on dilué cette solution ? b. Calcule le volume d'eau ajouté.
+
+II. Un ouvrier monte une brouette de sable de masse totale M=80 kg dans une pièce de chantier. Il pousse la brouette sur une planche AB qui fait un angle de 30° avec le sol AC. L'ouvrier s'arrête sur la planche.
+1. Fais la figure et représente les forces qui maintiennent la brouette en équilibre. (Échelle : 1 cm pour 400 N ; g=10 N/kg)
+2. Détermine graphiquement la force F exercée par l'ouvrier.
+
+III.
+1. Quels sont les dangers du courant du secteur ?
+2. À la maison, cite deux dispositifs pour assurer la sécurité des personnes.
+3. Cite quatre caractéristiques d'un transformateur de commerce.`,
+      consignes:[
+        { q:"Corrigé — I", r:`1. Solution acide (pH=2,5 < 7).
+2. Le pH augmente lors de la dilution (se rapproche de 7).
+3a. Facteur de dilution = 10^(pHf−pHi) = 10^(4,5−2,5) = 10² = 100 fois.
+3b. Volume final = 100×3 = 300 cm³ → volume d'eau ajouté = 300−3 = 297 cm³.` },
+        { q:"Corrigé — II", r:`Forces en équilibre : le poids P=Mg=80×10=800N (vertical, vers le bas) ; la réaction normale N de la planche (perpendiculaire à AB) ; la force F exercée par l'ouvrier (parallèle à la planche, dans le sens de la montée).
+F = P×sin(30°) = 800×0,5 = 400 N (soit 1 cm à l'échelle donnée).` },
+        { q:"Corrigé — III", r:`1. Dangers du courant du secteur : électrocution, risque d'incendie.
+2. Dispositifs de sécurité : le disjoncteur, la mise à la terre (ou le fusible).
+3. Caractéristiques d'un transformateur : tension primaire, tension secondaire, puissance nominale, fréquence.` }
+      ]
+    }
+  ]
+},
+{
+  id:"svt-bepc-blanc-adeta-2026",
+  cycle:"secondaire1", classe:"3e", serie:null, matiere:"SVT", examen:"BEPC Blanc", annee:2026, session:"DRE-Plateaux, IESG-Adéta — Février",
+  duree:"2H", coef:"2",
+  exercices:[
+    {
+      titre:"Exercice 1",
+      points:"8 pts",
+      enonce:`Dans les camps de réfugiés, les enfants sont souvent victimes de malnutrition et de maladies parasitaires. C'est le cas de Komla, âgé de 3 ans. Ce matin son père l'a conduit à l'hôpital. La consultation a confirmé une malnutrition et du paludisme qui a entraîné une anémie grave. Pour sa prise en charge, on lui propose un kit alimentaire d'urgence et une transfusion sanguine. Le kit alimentaire est composé d'aliments riches en amidon, en protides, en lipides, en sels minéraux et en vitamines, ce qui pourra fournir les nutriments nécessaires après la digestion. Pour la transfusion, le père se propose de donner son sang au fils. Après analyse, le médecin dit qu'ils ne sont pas compatibles (le fils ne peut pas recevoir le sang du père). Le père de Komla souhaite mieux comprendre ce qui se passe.
+
+Consigne 1 : Décris comment les aliments de ce kit se transformeront en nutriments le long du tube digestif.
+Consigne 2 : Explique les différentes conditions possibles dans lesquelles ce père pourra donner son sang à son fils.`,
+      consignes:[
+        {
+          q:"Corrigé officiel — Consigne 1",
+          r:`La digestion se déroule en deux aspects simultanés :
+Aspect mécanique : dans la bouche, les aliments sont broyés par les dents et imprégnés de salive ; la langue rassemble le bol alimentaire, qui passe à l'œsophage par déglutition. Dans l'estomac, les aliments sont à nouveau broyés (brassage). Le mélange progresse ensuite vers l'intestin grêle qui, après absorption des nutriments, évacue les déchets dans le gros intestin.
+Aspect chimique : dans la bouche, l'amylase salivaire transforme l'amidon cuit en maltose. Dans l'estomac, les protides sont transformés en polypeptides par la pepsine, donnant une bouillie pâteuse (chyme). Dans l'intestin grêle, la bile et les sucs intestinal et pancréatique transforment les polypeptides en acides aminés, les glucides en glucose, et les lipides en acides gras et glycérol. L'eau, les vitamines et les sels minéraux ne subissent aucune transformation.`
+        },
+        {
+          q:"Corrigé officiel — Consigne 2",
+          r:`Deux facteurs déterminent la compatibilité pour une transfusion : le groupe sanguin et le facteur rhésus.
+Groupe sanguin (défini par les antigènes A/B sur les hématies et les anticorps anti-A/anti-B du plasma) :
+— Père du groupe A → ne peut donner qu'à un fils du groupe A ou AB.
+— Père du groupe B → ne peut donner qu'à un fils du groupe B ou AB.
+— Père du groupe AB → ne peut donner qu'à un fils du groupe AB.
+— Père du groupe O → peut donner à un fils de n'importe quel groupe.
+Facteur rhésus (présence ou non de l'antigène D) : le rhésus négatif ne peut donner qu'à un receveur rhésus négatif ou positif, alors que le rhésus positif ne peut donner qu'à un receveur rhésus positif. Pour que la transfusion soit possible, groupe sanguin ET rhésus doivent être compatibles.`
+        }
+      ]
+    },
+    {
+      titre:"Exercice 2",
+      points:"6 pts",
+      enonce:`I. Complète le texte : « Le système nerveux de l'Homme est composé du système nerveux ...1... et du système nerveux périphérique. Le système nerveux central est composé de l'encéphale et de la ...2... Les actes volontaires sont commandés par le ...3... alors que les actes réflexes sont commandés par la ...4... Les centres nerveux sont protégés par les méninges. De l'extérieur vers l'intérieur on a : la ...5... ; l'arachnoïde et la ...6... Le nerf sensitif conduit l'influx nerveux du ...7... au centre nerveux alors que le nerf moteur conduit l'influx nerveux du centre nerveux jusqu'à l'...8... »
+
+II. Fais correspondre chaque élément de la liste A à un élément de la liste B :
+A : 1-Sérum, 2-Hématie, 3-Glande sudoripare, 4-Veine, 5-Oxyhémoglobine, 6-Antigène, 7-Leucocyte, 8-Diastole
+B : a-Phase de repos général du cœur, b-Sécrète la sueur, c-Cellule sanguine de défense de l'organisme, d-Substance contenant des anticorps prêts à répondre immédiatement, e-Corps étranger dans l'organisme, f-Cellule sanguine responsable du transport des gaz respiratoires, g-Forme combinée du dioxygène et de l'hémoglobine, h-Vaisseau sanguin conduisant le sang des organes vers le cœur
+
+III. Choisis la bonne réponse :
+1. Lorsque le sang jaillit en jets saccadés, le vaisseau rompu est : a) une artère b) une veine c) un capillaire
+2. Au cours de l'inspiration normale, il entre dans les poumons : a) 1,5 litre d'air de réserve b) 1,5 litre d'air résiduel c) 0,5 litre d'air courant
+3. Le phosphate est exploité dans : a) la chaîne des dahoméyides b) le bassin sédimentaire côtier c) le bassin des Voltas
+4. Au niveau des tissus, l'hémoglobine se combine au dioxyde de carbone pour donner : a) l'oxyhémoglobine b) le carboxyhémoglobine c) le carbohémoglobine`,
+      consignes:[
+        { q:"Corrigé officiel — I. Texte à trous", r:`1. central — 2. moelle épinière — 3. cerveau — 4. moelle épinière — 5. dure-mère — 6. pie-mère — 7. point excité/récepteur sensoriel — 8. effecteur.` },
+        { q:"Corrigé officiel — II. Association", r:`1→d · 2→f · 3→b · 4→h · 5→g · 6→e · 7→c · 8→a` },
+        { q:"Corrigé officiel — III. QCM", r:`1-a (une artère) · 2-c (0,5 litre d'air courant) · 3-b (le bassin sédimentaire côtier) · 4-c (le carbohémoglobine).` }
+      ]
+    },
+    {
+      titre:"Exercice 3",
+      points:"6 pts",
+      enonce:`1. Le schéma fourni est celui d'un organe de sens (globe oculaire), annoté de 1 à 12.
+1-1. Annote ce schéma. 1-2. Quel peut être le titre de ce schéma ? 1-3. Les éléments 3 et 5 sont responsables chacun d'un phénomène important dans la vision. Identifie chaque phénomène.
+2. Cite deux fonctions de la peau.
+3. Parmi les microbes suivants : plasmodium, Penicillium notatum, bacille de Koch, bacille lactique, Nitrobacter, VIH, gonocoque, levure de bière —
+3-1. Lesquels sont utiles à l'Homme ? 3-2. Précise la maladie causée par ceux qui sont pathogènes.
+4. Définis : dépigmentation ; immunité.`,
+      consignes:[
+        {
+          q:"Corrigé officiel — 1 (schéma de l'œil)",
+          r:`1-Conjonctive · 2-Humeur aqueuse · 3-Iris · 4-Pupille · 5-Cristallin · 6-Humeur vitrée · 7-Rétine · 8-Nerf optique · 9-Choroïde · 10-Sclérotique · 11-Fovéa · 12-Point aveugle.
+Titre : Schéma annoté de la coupe antéro-postérieure du globe oculaire.
+Iris (3) → responsable de la diaphragmation. Cristallin (5) → responsable de l'accommodation.`
+        },
+        { q:"Corrigé officiel — 2, 3, 4", r:`2. Fonctions de la peau : sensibilité, régulation thermique, production de vitamine D, cicatrisation.
+3-1. Microbes utiles : Penicillium notatum, bacille lactique, Nitrobacter, levure de bière.
+3-2. Plasmodium → paludisme ; bacille de Koch → tuberculose ; VIH → SIDA ; gonocoque → gonococcie (blennorragie).
+4. Dépigmentation : utilisation de produits cosmétiques dangereux pour éclaircir la peau. Immunité : capacité d'un organisme à se défendre contre les microbes pathogènes.`
+        }
+      ]
+    }
+  ]
+},
+{
+  id:"svt-bepc-blanc-sotouboua-2025",
+  cycle:"secondaire1", classe:"3e", serie:null, matiere:"SVT", examen:"BEPC Blanc", annee:2025, session:"DRE-Centrale, IESG-Sotouboua — Mai",
+  duree:"2H", coef:"2",
+  exercices:[
+    {
+      titre:"Exercice 1 — Situation d'évaluation",
+      points:"8 pts",
+      enonce:`Ton neveu découvre dans un livre de SVT un document accompagné du paragraphe suivant : « document du cycle simplifié de l'agent pathogène d'une maladie endémique provoquant une anémie parfois mortelle et transmise par un agent vecteur très répandu dans les pays tropicaux ». Il sollicite ton aide.
+
+Consigne 1 : Décris à ton neveu le cycle illustré sur ce document tout en lui précisant l'origine de l'anémie.
+Consigne 2 : Propose-lui des actions à mener pour éviter cette maladie endémique parfois mortelle.`,
+      consignes:[
+        {
+          q:"Corrigé — Consigne 1",
+          r:`Le document illustre le cycle du plasmodium, agent du paludisme : un moustique anophèle infecté pique l'Homme et lui injecte des sporozoïtes (1). Ceux-ci migrent vers le foie où ils se multiplient (schizogonie hépatique) (2-3). Les mérozoïtes libérés envahissent ensuite les globules rouges (4), où ils se multiplient à nouveau et finissent par les détruire — c'est cette destruction massive des globules rouges (hémolyse) qui est à l'origine de l'anémie. Des gamétocytes se forment dans le sang (5), et un autre moustique, en piquant la personne infectée, les absorbe (6), poursuivant le cycle chez le moustique.`
+        },
+        {
+          q:"Corrigé — Consigne 2",
+          r:`Dormir sous une moustiquaire imprégnée ; assainir l'environnement en éliminant les eaux stagnantes (lieux de reproduction des moustiques) ; utiliser des répulsifs/insecticides ; consulter rapidement un centre de santé dès les premiers symptômes ; recourir à la chimioprophylaxie pour les personnes à risque (femmes enceintes, jeunes enfants).`
+        }
+      ]
+    },
+    {
+      titre:"Exercice 2 — Questions traditionnelles",
+      points:"6 pts",
+      enonce:`1. Le schéma fourni est celui d'un organe de sens (globe oculaire), annoté de 1 à 13.
+a. Quel peut être le titre de ce schéma ? b. Annote le schéma. c. Quels sont les rôles spécifiques des éléments 2, 4 et 13 ?
+
+2. MOUNA a débuté ses règles le 5 mai et son cycle dure 30 jours.
+a. Quelle est la date probable de son ovulation ? b. Détermine sa période de fécondité. c. Détermine la date probable du début de ses prochaines règles.
+
+3. Reproduis et complète le tableau : Lieux de digestion | Sucs digestifs | Enzymes | Substances (aliments)
+(Salive donné en 1re ligne ; Pepsine et présure données en 2e ligne)`,
+      consignes:[
+        {
+          q:"Corrigé — 1 (schéma de l'œil)",
+          r:`Titre proposé : Schéma annoté de la coupe du globe oculaire.
+Attention : ce schéma comporte 13 éléments (contre 12 sur un schéma oculaire rencontré précédemment dans cette bibliothèque), avec une orientation différente — je ne peux pas garantir avec certitude la correspondance exacte numéro→structure sans voir clairement les flèches. Liste des structures habituellement annotées sur ce type de schéma, à faire correspondre toi-même aux numéros : cornée, sclérotique, choroïde, rétine, iris, pupille, cristallin, corps ciliaire, humeur aqueuse, humeur vitrée, nerf optique, fovéa, point aveugle.`
+        },
+        {
+          q:"Corrigé — 2 (cycle de MOUNA)",
+          r:`Cycle de 30 jours, règles le 5 mai. Ovulation ≈ 14 jours avant la fin du cycle, soit vers le 16e jour du cycle → environ le 20 mai.
+Période de fécondité : quelques jours autour de l'ovulation, soit environ du 17 au 21 mai.
+Prochaines règles : 5 mai + 30 jours = environ le 4 juin.`
+        },
+        {
+          q:"Corrigé — 3 (tableau digestion)",
+          r:`Bouche | Salive | Amylase salivaire (ptyaline) | Amidon (glucides).
+Estomac | Suc gastrique | Pepsine et présure | Protides (et caséine du lait pour la présure).`
+        }
+      ]
+    },
+    {
+      titre:"Exercice 3 — Questions objectives",
+      points:"6 pts",
+      enonce:`1. Remplace les lettres par le mot correspondant : « Le sang est un tissu qui circule dans les ...a... (les artères, les veines et les capillaires). Le sang comprend le plasma et les éléments ...b... Ces derniers regroupent plusieurs types de cellules : les ...c... assurent le transport des gaz respiratoires grâce aux ...d... ; les ...e... défendent l'organisme contre les microbes ...f... ; les plaquettes ...g... interviennent dans la ...h... du sang. »
+
+2. Associe : 1-Les ovaires, 2-Les reins, 3-Le calcaire, 4-La dépigmentation, 5-Le phosphate, 6-Le cœur
+à : a-La fabrication du ciment, b-Le moteur de la circulation sanguine, c-La destruction des cellules de la peau, d-La progestérone, l'œstrogène, e-Les organes excréteurs, f-Les lieux d'exploitation : Hahotoé et Kpogamé
+
+3. Choisis la ou les bonnes réponses :
+3-1. Au cours de la révolution cardiaque, le repos général du cœur caractérise : a) la systole auriculaire b) la diastole c) la systole ventriculaire d) la valvule auriculo-ventriculaire
+3-2. L'association de plusieurs vaccins est appelée : a) la sérovaccination b) la sérothérapie c) le polyvaccin d) la vaccinothérapie
+3-3. Un corps étranger dans l'organisme est appelé : a) un antigène b) une antitoxine c) un anticorps d) une antisepsie
+3-4. Le système nerveux central de l'Homme comprend : a) les nerfs rachidiens b) la moelle épinière c) les nerfs crâniens d) l'encéphale
+
+4. Réponds par vrai ou faux :
+4-1. L'espèce humaine possède 23 chromosomes au total.
+4-2. Le Penicillium notatum, le nitrobacter et le bacille de Koch sont des microbes utiles.`,
+      consignes:[
+        { q:"Corrigé — 1. Texte à trous", r:`a. vaisseaux sanguins — b. figurés — c. hématies — d. hémoglobine — e. leucocytes — f. pathogènes — g. sanguines — h. coagulation.` },
+        { q:"Corrigé — 2. Association", r:`1→d · 2→e · 3→a · 4→c · 5→f · 6→b` },
+        { q:"Corrigé — 3. QCM", r:`3-1-b (la diastole). 3-2-c (le polyvaccin). 3-3-a (un antigène). 3-4-b,d (la moelle épinière ET l'encéphale — le système nerveux central regroupe les deux).` },
+        { q:"Corrigé — 4. Vrai/Faux", r:`4-1. Faux — l'espèce humaine possède 46 chromosomes au total (23 paires) ; les gamètes en contiennent 23.
+4-2. Faux — le bacille de Koch est pathogène (responsable de la tuberculose) ; seuls le Penicillium notatum et le nitrobacter sont utiles.` }
+      ]
+    }
+  ]
+}
+];
+
+/* ===========================================================
+   CONFIGURATION DE LA NAVIGATION
+   -----------------------------------------------------------
+   Chaque sujet (voir SUJETS ci-dessus) porte les champs :
+     cycle   : identifiant d'un cycle défini dans CYCLES
+     classe  : une des classes de ce cycle
+     serie   : une série du cycle si cycle.hasSeries === true,
+               sinon null
+     matiere : une des valeurs de MATIERES_TOUTES
+
+   CYCLES décrit la hiérarchie de navigation de façon déclarative :
+   ajouter un cycle, une classe ou une série ne nécessite AUCUNE
+   modification des fonctions de rendu plus bas — elles lisent
+   uniquement cette configuration.
+=========================================================== */
+const CYCLES = [
+  { id:"secondaire1", label:"Secondaire 1", classes:["6e","5e","4e","3e"], hasSeries:false },
+  { id:"secondaire2", label:"Secondaire 2", classes:["Seconde","Première","Terminale"], hasSeries:true, series:["A4","D","C"] }
+];
+
+const MATIERES_TOUTES = ["SVT","Mathématiques","Français","Physique-Chimie","Anglais","Histoire-Géo","ECM"];
+
+/* ===========================================================
+   ÉTAT DE NAVIGATION
+=========================================================== */
+let state = {
+  cycleId: "secondaire1",
+  classe:  "3e",   // ouvre par défaut sur la classe qui a du contenu
+  serie:   null,
+  matiere: null,
+  sujetId: null
+};
+
+/** Retourne la configuration du cycle actuellement sélectionné. */
+function getCurrentCycle(){
+  return CYCLES.find(c => c.id === state.cycleId);
+}
+
+/**
+ * Filtre SUJETS selon la position courante dans la navigation
+ * (cycle, classe, série si applicable), avec un filtre matière
+ * optionnel. Point d'entrée unique pour tout comptage/listing —
+ * évite de dupliquer la logique de filtrage à plusieurs endroits.
+ */
+function getSujetsAt({ matiere = null } = {}){
+  const cycle = getCurrentCycle();
+  return SUJETS.filter(s => {
+    if (s.cycle !== state.cycleId) return false;
+    if (s.classe !== state.classe) return false;
+    if (cycle.hasSeries && s.serie !== state.serie) return false;
+    if (matiere && s.matiere !== matiere) return false;
+    return true;
+  });
+}
+
+/* ===========================================================
+   RENDU — un dispatcher principal + des vues composées
+   à partir d'un unique composant réutilisable (renderChipRow).
+=========================================================== */
+const app = document.getElementById('app');
+
+function render(){
+  app.innerHTML = '';
+
+  renderCycleTabs();
+  renderClasseTabs();
+  if (getCurrentCycle().hasSeries) renderSerieBand();
+  renderMatiereBand();
+
+  if (state.sujetId) renderDetail();
+  else renderSujets();
+
+  window.scrollTo(0, 0);
+}
+
+/**
+ * Composant générique : une rangée de "puces" sélectionnables
+ * (onglets de cycle/classe, ou bande déroulante de série/matière).
+ * Centralise le rendu + la logique active/désactivé/clic pour
+ * éviter la duplication entre les 4 niveaux de navigation.
+ *
+ * @param {object} opts
+ *   items        - tableau des valeurs à afficher
+ *   rowClass     - classe CSS du conteneur (ex. 'class-tabs')
+ *   chipClass    - classe CSS de chaque puce (ex. 'class-tab')
+ *   getLabel     - (item) => texte affiché
+ *   isActive     - (item) => booléen
+ *   getCount     - (item) => nombre de sujets correspondants, ou null
+ *                  si le comptage ne s'applique pas à ce niveau
+ *   onSelect     - (item) => effectue la sélection et réaffiche
+ */
+function renderChipRow(opts){
+  const { items, rowClass, chipClass, getLabel, isActive, getCount, onSelect } = opts;
+
+  const row = document.createElement('div');
+  row.className = rowClass;
+
+  items.forEach(item => {
+    const count = getCount ? getCount(item) : null;
+    const disabled = count === 0;
+
+    const chip = document.createElement('div');
+    chip.className = chipClass
+      + (isActive(item) ? ' active' : '')
+      + (disabled ? ' disabled' : '');
+    chip.textContent = getLabel(item) + (count ? ' · ' + count : '');
+
+    if (!disabled) chip.onclick = () => onSelect(item);
+    row.appendChild(chip);
+  });
+
+  app.appendChild(row);
+}
+
+function renderCycleTabs(){
+  renderChipRow({
+    items: CYCLES,
+    rowClass: 'class-tabs',
+    chipClass: 'class-tab',
+    getLabel: c => c.label,
+    isActive: c => c.id === state.cycleId,
+    getCount: null, // toujours activé, quel que soit le contenu
+    onSelect: c => {
+      state.cycleId = c.id;
+      state.classe  = c.classes[0];
+      state.serie   = c.hasSeries ? c.series[0] : null;
+      state.matiere = null;
+      state.sujetId = null;
+      render();
+    }
+  });
+}
+
+function renderClasseTabs(){
+  const cycle = getCurrentCycle();
+  renderChipRow({
+    items: cycle.classes,
+    rowClass: 'class-tabs classe-tabs-sub',
+    chipClass: 'class-tab',
+    getLabel: c => c,
+    isActive: c => c === state.classe,
+    getCount: null, // la classe reste choisissable même sans contenu encore
+    onSelect: c => {
+      state.classe  = c;
+      state.serie   = cycle.hasSeries ? cycle.series[0] : null;
+      state.matiere = null;
+      state.sujetId = null;
+      render();
+    }
+  });
+}
+
+function renderSerieBand(){
+  const cycle = getCurrentCycle();
+  const h = document.createElement('h2');
+  h.className = 'section-title';
+  h.textContent = state.classe + ' — choisis une série';
+  app.appendChild(h);
+
+  renderChipRow({
+    items: cycle.series,
+    rowClass: 'matiere-band',
+    chipClass: 'matiere-chip serie-chip',
+    getLabel: s => 'Série ' + s,
+    isActive: s => s === state.serie,
+    getCount: null, // la série reste choisissable même sans contenu encore
+    onSelect: s => {
+      state.serie   = s;
+      state.matiere = null;
+      state.sujetId = null;
+      render();
+    }
+  });
+}
+
+function renderMatiereBand(){
+  const h = document.createElement('h2');
+  h.className = 'section-title';
+  const label = getCurrentCycle().hasSeries
+    ? `${state.classe} (série ${state.serie}) — choisis une matière`
+    : `Classe de ${state.classe} — choisis une matière`;
+  h.textContent = label;
+  app.appendChild(h);
+
+  renderChipRow({
+    items: MATIERES_TOUTES,
+    rowClass: 'matiere-band',
+    chipClass: 'matiere-chip',
+    getLabel: m => m,
+    isActive: m => m === state.matiere,
+    getCount: m => getSujetsAt({ matiere: m }).length,
+    onSelect: m => {
+      state.matiere = m;
+      state.sujetId = null;
+      render();
+    }
+  });
+}
+
+function renderSujets(){
+  if(!state.matiere){
+    const note = document.createElement('p');
+    note.className='empty-note';
+    note.textContent = 'Choisis une matière ci-dessus pour voir les sujets disponibles.';
+    app.appendChild(note);
+    return;
+  }
+
+  const h = document.createElement('h3');
+  h.className='section-title';
+  h.style.marginTop='18px';
+  h.textContent = state.matiere + ' — sujets disponibles';
+  app.appendChild(h);
+
+  const list = getSujetsAt({ matiere: state.matiere })
+                 .sort((a,b)=>b.annee-a.annee);
+
+  list.forEach(s=>{
+    const card = document.createElement('div');
+    card.className='sujet-card';
+    card.onclick = ()=>{ state.sujetId=s.id; render(); };
+    const titre = document.createElement('div');
+    titre.className='titre';
+    titre.textContent = `${s.examen} ${s.annee}`;
+    const meta = document.createElement('div');
+    meta.className='meta';
+    meta.textContent = `${s.session}${s.duree? ' · '+s.duree:''}`;
+    const badge = document.createElement('div');
+    badge.className='badge-corrige';
+    badge.textContent='corrigé';
+    card.appendChild(badge);
+    card.appendChild(titre);
+    card.appendChild(meta);
+    app.appendChild(card);
+  });
+
+  if(list.length===0){
+    const note = document.createElement('p');
+    note.className='empty-note';
+    note.textContent='Aucun sujet pour le moment dans cette matière pour cette classe.';
+    app.appendChild(note);
+  }
+}
+
+function renderDetail(){
+  const sujet = SUJETS.find(s=>s.id===state.sujetId);
+  if(!sujet){ state.sujetId=null; render(); return; }
+
+  const back = document.createElement('button');
+  back.className='back-fab';
+  back.textContent='← Retour aux sujets';
+  back.onclick = ()=>{ state.sujetId=null; render(); };
+  app.appendChild(back);
+
+  const toolbar = document.createElement('div');
+  toolbar.className='export-toolbar';
+  const btnWord = document.createElement('button');
+  btnWord.className='export-btn';
+  btnWord.textContent='📝 Télécharger en Word';
+  btnWord.onclick = () => exportSujetAsWord(sujet);
+  const btnPdf = document.createElement('button');
+  btnPdf.className='export-btn';
+  btnPdf.textContent='📄 Télécharger en PDF';
+  btnPdf.onclick = () => exportSujetAsPdf(sujet);
+  toolbar.appendChild(btnWord);
+  toolbar.appendChild(btnPdf);
+  app.appendChild(toolbar);
+
+  const head = document.createElement('div');
+  head.className='sujet-header';
+  head.innerHTML = `<div class="examtitle">${sujet.examen} ${sujet.annee}</div>
+    <table>
+      <tr><td>Matière</td><td>: ${sujet.matiere}</td><td>Durée</td><td>: ${sujet.duree||'—'}</td></tr>
+      <tr><td>Session</td><td>: ${sujet.session}</td><td>Coef</td><td>: ${sujet.coef||'—'}</td></tr>
+    </table>`;
+  app.appendChild(head);
+
+  sujet.exercices.forEach((ex,exi)=>{
+    const box = document.createElement('div');
+    box.className='exercice';
+    let html = `<h3>${ex.titre}${ex.points? ' ('+ex.points+')':''}</h3>`;
+    html += `<div class="enonce">${escapeHtml(ex.enonce)}</div>`;
+    box.innerHTML = html;
+
+    if(ex.documents){
+      ex.documents.forEach(doc=>{
+        const d = document.createElement('div');
+        let dh = `<p style="font-family:'Courier New',monospace;font-size:12.5px;margin:14px 0 4px;font-weight:700;">${doc.titre}</p>`;
+        if(doc.intro) dh += `<div class="enonce" style="font-size:14px;">${escapeHtml(doc.intro)}</div>`;
+        dh += doc.html;
+        d.innerHTML = dh;
+        box.appendChild(d);
+      });
+    }
+
+    ex.consignes.forEach((c,ci)=>{
+      const cwrap = document.createElement('div');
+      cwrap.className='consigne';
+      const q = document.createElement('div');
+      q.className='q';
+      q.textContent = c.q;
+      cwrap.appendChild(q);
+
+      const btn = document.createElement('button');
+      btn.className='reveal-btn';
+      btn.textContent='✎ Voir le corrigé';
+      const rid = `corrige-${exi}-${ci}`;
+      const rdiv = document.createElement('div');
+      rdiv.className='corrige';
+      rdiv.id = rid;
+      rdiv.innerHTML = `<span class="tick">✓</span> ${escapeHtml(c.r).replace(/\n/g,'<br>')}`;
+
+      btn.onclick = ()=>{
+        const shown = rdiv.classList.toggle('show');
+        btn.textContent = shown ? '✎ Masquer le corrigé' : '✎ Voir le corrigé';
+      };
+
+      cwrap.appendChild(btn);
+      cwrap.appendChild(rdiv);
+      box.appendChild(cwrap);
+    });
+
+    app.appendChild(box);
+  });
+}
+
+/* ===========================================================
+   EXPORT — génération Word (.doc) et PDF (impression navigateur)
+   -----------------------------------------------------------
+   Les deux exports partagent la même mise en forme de contenu
+   (buildSujetContentHtml) pour éviter toute divergence entre
+   les deux formats — un seul endroit à maintenir.
+=========================================================== */
+
+/** Nom de fichier sûr : enlève accents/caractères spéciaux. */
+function slugifyFilename(text){
+  return text
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+/**
+ * Construit le HTML du contenu d'un sujet (titre, documents, exercices,
+ * consignes + corrigés) — indépendant de la mise en page de l'appli,
+ * pensé pour être imprimé ou ouvert dans Word.
+ */
+function buildSujetContentHtml(sujet){
+  const nl2br = t => escapeHtml(t).replace(/\n/g, '<br>');
+
+  let body = `<h1>${escapeHtml(sujet.examen)} ${sujet.annee}</h1>
+    <p><b>Matière :</b> ${escapeHtml(sujet.matiere)} &nbsp; <b>Classe :</b> ${escapeHtml(sujet.classe)}${sujet.serie ? ' (série '+escapeHtml(sujet.serie)+')' : ''}<br>
+    <b>Session :</b> ${escapeHtml(sujet.session)} &nbsp; <b>Durée :</b> ${escapeHtml(sujet.duree||'—')} &nbsp; <b>Coef :</b> ${escapeHtml(sujet.coef||'—')}</p>
+    <hr>`;
+
+  sujet.exercices.forEach(ex=>{
+    body += `<h2>${escapeHtml(ex.titre)}${ex.points ? ' ('+escapeHtml(ex.points)+')' : ''}</h2>`;
+    body += `<p>${nl2br(ex.enonce)}</p>`;
+
+    if(ex.documents){
+      ex.documents.forEach(doc=>{
+        body += `<p><b>${escapeHtml(doc.titre)}</b></p>`;
+        if(doc.intro) body += `<p>${nl2br(doc.intro)}</p>`;
+        body += doc.html;
+      });
+    }
+
+    ex.consignes.forEach(c=>{
+      body += `<p><b>${escapeHtml(c.q)}</b></p>`;
+      body += `<p style="color:#A8332A;">${nl2br(c.r)}</p>`;
+    });
+  });
+
+  return body;
+}
+
+/** Télécharge le sujet au format Word (.doc), via la technique HTML-blob. */
+function exportSujetAsWord(sujet){
+  const content = buildSujetContentHtml(sujet);
+  const doc = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+    <head><meta charset="utf-8"><title>${escapeHtml(sujet.examen)} ${sujet.annee}</title></head>
+    <body style="font-family:Calibri,Arial,sans-serif;">${content}</body></html>`;
+
+  const blob = new Blob(['\ufeff', doc], { type: 'application/msword' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = slugifyFilename(`${sujet.examen}-${sujet.annee}-${sujet.matiere}`) + '.doc';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * "Export PDF" via la boîte d'impression du navigateur : ouvre le
+ * contenu du sujet dans une fenêtre dédiée et déclenche l'impression ;
+ * l'utilisateur choisit "Enregistrer en PDF" comme destination.
+ * Choix volontaire : pas de librairie PDF externe, donc rien à charger
+ * depuis le réseau — cohérent avec le fonctionnement hors ligne de l'appli.
+ */
+function exportSujetAsPdf(sujet){
+  const content = buildSujetContentHtml(sujet);
+  const printHtml = `<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8">
+    <title>${escapeHtml(sujet.examen)} ${sujet.annee}</title>
+    <style>
+      body{font-family:Georgia,serif; color:#1C2B23; padding:24px; line-height:1.5;}
+      h1{font-size:20px;} h2{font-size:16px; margin-top:24px; border-bottom:1px solid #ccc;}
+      table{border-collapse:collapse; width:100%; margin:10px 0;}
+      td,th{border:1px solid #333; padding:5px 8px; text-align:left;}
+    </style>
+    </head><body>${content}</body></html>`;
+
+  const printWindow = window.open('', '_blank');
+  if(!printWindow){
+    alert("Le navigateur a bloqué l'ouverture de la fenêtre d'impression. Autorise les pop-ups pour ce site puis réessaie.");
+    return;
+  }
+  printWindow.document.write(printHtml);
+  printWindow.document.close();
+  printWindow.focus();
+  printWindow.print();
+}
+
+function escapeHtml(str){
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+render();
+
+/* ---------------------------------------------------------
+   OFFLINE : enregistrement du service worker + badge
+--------------------------------------------------------- */
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
+function updateOfflineBadge(){
+  const b = document.getElementById('offlineBadge');
+  if(navigator.onLine){ b.classList.remove('show'); }
+  else{ b.classList.add('show'); }
+}
+window.addEventListener('online', updateOfflineBadge);
+window.addEventListener('offline', updateOfflineBadge);
+updateOfflineBadge();
+</script>
+</body>
+</html>
