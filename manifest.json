@@ -1,7 +1,7 @@
 {
-  "name": "Annales BEPC/BAC — AYH",
+  "name": "Annales scolaires — AYH",
   "short_name": "Annales AYH",
-  "description": "Bibliothèque hors ligne de sujets d'examens BEPC/BAC avec corrigés détaillés",
+  "description": "Bibliothèque hors ligne de sujets d'examens du Secondaire 1 et 2 (Togo) avec corrigés détaillés",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#22352A",
